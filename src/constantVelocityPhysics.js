@@ -9,8 +9,8 @@
 export const TRACK_MIN = 0.0;     // cm
 export const TRACK_MAX = 240.0;   // cm
 
-export const VELOCITY_RED = 15.0;  // cm/s (Fast Car)
-export const VELOCITY_BLUE = 5.0;  // cm/s (Slow Car)
+export const VELOCITY_RED = 30.0;  // cm/s (Fast Car - responsive and fast)
+export const VELOCITY_BLUE = 10.0; // cm/s (Slow Car)
 
 /**
  * Calculates position given time, initial position, and velocity.
@@ -194,7 +194,6 @@ export function fitLinearRegression(points) {
 
 /**
  * Calculates percent error between experimental value and theoretical value.
- * Formula: |experimental - theoretical| / |theoretical| * 100
  * 
  * @param {number} exp - Experimental value
  * @param {number} theo - Theoretical value

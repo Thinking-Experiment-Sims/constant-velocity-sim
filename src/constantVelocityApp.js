@@ -125,6 +125,7 @@ const blueEquationText = document.getElementById('blueEquationText');
 // Challenge Elements
 const challengeLockScreen = document.getElementById('challengeLockScreen');
 const verificationContainer = document.getElementById('verificationContainer');
+const verificationFeedback = document.getElementById('verificationFeedback');
 const predictionSolveContainer = document.getElementById('predictionSolveContainer');
 const verifyRedSlope = document.getElementById('verifyRedSlope');
 const verifyRedIntercept = document.getElementById('verifyRedIntercept');
@@ -160,7 +161,7 @@ function setupEventListeners() {
     state.timingMode = e.target.value;
     if (state.timingMode === 'manual') {
       manualSplitBanner.style.display = 'flex';
-      timingModePill.textContent = '⏱️ Manual Stopwatch Mode';
+      timingModePill.textContent = '⏱️ Manual Mode (With Uncertainty)';
       timingModePill.className = 'timing-mode-pill manual';
     } else {
       manualSplitBanner.style.display = 'none';
@@ -192,7 +193,7 @@ function setupEventListeners() {
   btnReset.addEventListener('click', resetAllPositions);
   btnClearData.addEventListener('click', clearLoggedData);
 
-  // Live updates when typing prediction values to preview on graph and track
+  // Live updates when typing prediction values
   predTimeInput.addEventListener('input', () => {
     state.predTime = parseFloat(predTimeInput.value);
     draw();
@@ -374,11 +375,12 @@ function clearLoggedData() {
   challengeLockScreen.style.display = 'flex';
   verificationContainer.style.display = 'none';
   predictionSolveContainer.style.display = 'none';
+  if (verificationFeedback) verificationFeedback.style.display = 'none';
   
   resetAllPositions();
 }
 
-// Run single car independently
+// Run single car independently (Automatically records t=0 initial point)
 function startSingleCar(color) {
   if (state.isRunning) return;
   
@@ -392,6 +394,11 @@ function startSingleCar(color) {
     state.carRed.x = state.carRed.x0;
     state.carRed.crossedSensors.clear();
     state.carRed.dataLogs = [];
+    
+    // Auto-record initial position at t = 0.00 s so student never misses it!
+    state.carRed.crossedSensors.add(state.carRed.x0);
+    state.carRed.dataLogs.push({ t: 0.0, x: state.carRed.x0 });
+    
     btnRunRed.disabled = true;
     btnRunBlue.disabled = false;
     statusIndicator.textContent = "Running Red Car A (Top lane)...";
@@ -399,6 +406,11 @@ function startSingleCar(color) {
     state.carBlue.x = state.carBlue.x0;
     state.carBlue.crossedSensors.clear();
     state.carBlue.dataLogs = [];
+    
+    // Auto-record initial position at t = 0.00 s so student never misses it!
+    state.carBlue.crossedSensors.add(state.carBlue.x0);
+    state.carBlue.dataLogs.push({ t: 0.0, x: state.carBlue.x0 });
+    
     btnRunBlue.disabled = true;
     btnRunRed.disabled = false;
     statusIndicator.textContent = "Running Blue Car B (Bottom lane)...";
@@ -427,7 +439,7 @@ function recordManualSplit() {
   MARKS.forEach(m => {
     if (!activeCar.crossedSensors.has(m)) {
       const diff = Math.abs(activeCar.x - m);
-      if (diff < minDiff && diff <= 35) {
+      if (diff < minDiff && diff <= 45) { // Generous split detection window
         minDiff = diff;
         bestMark = m;
       }
@@ -657,33 +669,110 @@ function unlockChallengeVerification() {
   verificationContainer.style.display = 'block';
 }
 
+// Forgiving & Flexible Equation Verification with Inline UI presentation
 function verifyAlgebraicEquations() {
   const enteredRedSlope = parseFloat(verifyRedSlope.value);
   const enteredRedIntercept = parseFloat(verifyRedIntercept.value);
   const enteredBlueSlope = parseFloat(verifyBlueSlope.value);
   const enteredBlueIntercept = parseFloat(verifyBlueIntercept.value);
   
-  let redCorrect = true;
-  let blueCorrect = true;
+  const redFit = fitLinearRegression(state.carRed.dataLogs);
+  const blueFit = fitLinearRegression(state.carBlue.dataLogs);
   
+  let redSlopeOk = false;
+  let redIntOk = false;
+  let blueSlopeOk = false;
+  let blueIntOk = false;
+  let hints = [];
+
+  // Red Car Verification
   if (state.carRed.enabled) {
-    const errorSlope = Math.abs(enteredRedSlope - state.carRed.v);
-    const errorInt = Math.abs(enteredRedIntercept - state.carRed.x0);
-    redCorrect = (errorSlope <= 1.5) && (errorInt <= 3.0);
-  }
-  
-  if (state.carBlue.enabled) {
-    const errorSlope = Math.abs(enteredBlueSlope - state.carBlue.v);
-    const errorInt = Math.abs(enteredBlueIntercept - state.carBlue.x0);
-    blueCorrect = (errorSlope <= 1.5) && (errorInt <= 3.0);
-  }
-  
-  if (redCorrect && blueCorrect) {
-    state.challengeVerified = true;
-    verificationContainer.style.display = 'none';
-    predictionSolveContainer.style.display = 'block';
+    if (isNaN(enteredRedSlope) || isNaN(enteredRedIntercept)) {
+      hints.push("Please fill in both the slope and initial position for Red Car A.");
+    } else {
+      const theoSlope = state.carRed.v;
+      const fitSlope = redFit ? redFit.slope : theoSlope;
+      const theoInt = state.carRed.x0;
+      const fitInt = redFit ? redFit.intercept : theoInt;
+      
+      // Accept either theoretical or fitted value within generous bounds
+      redSlopeOk = (Math.abs(enteredRedSlope - theoSlope) <= 5.0) || 
+                   (Math.abs(enteredRedSlope - fitSlope) <= 4.0) ||
+                   (theoSlope !== 0 && Math.abs((enteredRedSlope - theoSlope) / theoSlope) <= 0.25);
+      
+      redIntOk = (Math.abs(enteredRedIntercept - theoInt) <= 6.0) || 
+                 (Math.abs(enteredRedIntercept - fitInt) <= 6.0);
+      
+      if (!redSlopeOk) {
+        if (theoSlope < 0 && enteredRedSlope > 0) {
+          hints.push(`Red Car A is moving left (negative slope around ${theoSlope.toFixed(0)} cm/s).`);
+        } else {
+          hints.push(`Red Car A slope should be near ${theoSlope.toFixed(0)} cm/s.`);
+        }
+      }
+      if (!redIntOk) {
+        hints.push(`Red Car A starting position was ${theoInt.toFixed(0)} cm.`);
+      }
+    }
   } else {
-    alert("Your equations do not match the data slopes and intercepts. Check your values and signs (+ for moving right, - for moving left) and try again!");
+    redSlopeOk = true;
+    redIntOk = true;
+  }
+
+  // Blue Car Verification
+  if (state.carBlue.enabled) {
+    if (isNaN(enteredBlueSlope) || isNaN(enteredBlueIntercept)) {
+      hints.push("Please fill in both the slope and initial position for Blue Car B.");
+    } else {
+      const theoSlope = state.carBlue.v;
+      const fitSlope = blueFit ? blueFit.slope : theoSlope;
+      const theoInt = state.carBlue.x0;
+      const fitInt = blueFit ? blueFit.intercept : theoInt;
+      
+      blueSlopeOk = (Math.abs(enteredBlueSlope - theoSlope) <= 5.0) || 
+                    (Math.abs(enteredBlueSlope - fitSlope) <= 4.0) ||
+                    (theoSlope !== 0 && Math.abs((enteredBlueSlope - theoSlope) / theoSlope) <= 0.25);
+      
+      blueIntOk = (Math.abs(enteredBlueIntercept - theoInt) <= 6.0) || 
+                  (Math.abs(enteredBlueIntercept - fitInt) <= 6.0);
+      
+      if (!blueSlopeOk) {
+        if (theoSlope < 0 && enteredBlueSlope > 0) {
+          hints.push(`Blue Car B is moving left (decreasing position), so its velocity/slope must be negative (near ${theoSlope.toFixed(0)} cm/s).`);
+        } else {
+          hints.push(`Blue Car B slope should be near ${theoSlope.toFixed(0)} cm/s.`);
+        }
+      }
+      if (!blueIntOk) {
+        hints.push(`Blue Car B starting position was ${theoInt.toFixed(0)} cm.`);
+      }
+    }
+  } else {
+    blueSlopeOk = true;
+    blueIntOk = true;
+  }
+
+  if (redSlopeOk && redIntOk && blueSlopeOk && blueIntOk) {
+    state.challengeVerified = true;
+    if (verificationFeedback) {
+      verificationFeedback.style.display = 'block';
+      verificationFeedback.style.background = '#ebfbee';
+      verificationFeedback.style.border = '1px solid #c3fae8';
+      verificationFeedback.style.color = '#087f5b';
+      verificationFeedback.innerHTML = '✅ <strong>Equations Verified!</strong> Your equations of motion match your experimental data.';
+    }
+    setTimeout(() => {
+      verificationContainer.style.display = 'none';
+      predictionSolveContainer.style.display = 'block';
+    }, 400);
+  } else {
+    if (verificationFeedback) {
+      verificationFeedback.style.display = 'block';
+      verificationFeedback.style.background = '#fff4e6';
+      verificationFeedback.style.border = '1px solid #ffd8a8';
+      verificationFeedback.style.color = '#d9480f';
+      verificationFeedback.innerHTML = `<strong>⚠️ Check your values:</strong><br>${hints.join('<br>')}`;
+    }
   }
 }
 
@@ -693,7 +782,7 @@ function evaluateChallengeOutcome() {
   const timeErr = Math.abs(state.predTime - state.meetingPoint.time);
   const posErr = Math.abs(state.predPos - state.meetingPoint.position);
   
-  const correct = (timeErr <= 0.5) && (posErr <= 3.0);
+  const correct = (timeErr <= 0.8) && (posErr <= 6.0);
   
   if (correct) {
     statusIndicator.innerHTML = `🎉 <strong>Challenge Succeeded!</strong>`;

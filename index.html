@@ -45,13 +45,13 @@
           <label for="timingModeSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
           <select id="timingModeSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
             <option value="auto" selected>🤖 Auto (Photogate Sensors - Exact)</option>
-            <option value="manual">⏱️ Manual (Stopwatch Split - With Human Uncertainty)</option>
+            <option value="manual">⏱️ Manual (Stopwatch Split - With Uncertainty)</option>
           </select>
         </div>
       </div>
 
       <div id="groupInfoText" style="font-size: 0.9rem; color: var(--muted); font-weight: 500;">
-        Car A (Red): Starts at 0 cm, moving right | Car B (Blue): Starts at 210 cm, moving left
+        Car A (Red - Top): Starts at 0 cm, moving right | Car B (Blue - Bottom): Starts at 210 cm, moving left
       </div>
     </div>
 
@@ -99,8 +99,8 @@
             <label class="range-label" style="font-size: 0.85rem;">Start position: <span id="sbRedStartVal">0</span> cm
               <input type="range" id="sbRedStart" min="0" max="240" step="30" value="0">
             </label>
-            <label class="range-label" style="font-size: 0.85rem; margin-top: 0.4rem;">Velocity: <span id="sbRedVelVal">15</span> cm/s
-              <input type="range" id="sbRedVel" min="1" max="25" step="1" value="15">
+            <label class="range-label" style="font-size: 0.85rem; margin-top: 0.4rem;">Velocity: <span id="sbRedVelVal">30</span> cm/s
+              <input type="range" id="sbRedVel" min="5" max="50" step="5" value="30">
             </label>
           </div>
           <div>
@@ -108,24 +108,24 @@
             <label class="range-label" style="font-size: 0.85rem;">Start position: <span id="sbBlueStartVal">210</span> cm
               <input type="range" id="sbBlueStart" min="0" max="240" step="30" value="210">
             </label>
-            <label class="range-label" style="font-size: 0.85rem; margin-top: 0.4rem;">Velocity: <span id="sbBlueVelVal">-5</span> cm/s
-              <input type="range" id="sbBlueVel" min="-25" max="-1" step="1" value="-5">
+            <label class="range-label" style="font-size: 0.85rem; margin-top: 0.4rem;">Velocity: <span id="sbBlueVelVal">-10</span> cm/s
+              <input type="range" id="sbBlueVel" min="-50" max="-5" step="5" value="-10">
             </label>
           </div>
         </div>
       </div>
 
-      <!-- Manual Split Timing Action Banner (Shown when manual mode is selected) -->
+      <!-- Manual Split Timing Action Banner -->
       <div id="manualSplitBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
         <div>
-          <strong style="color: #d9480f;">⏱️ Manual Stopwatch Timing Active:</strong>
-          <span style="font-size: 0.88rem; color: #495057; margin-left: 0.4rem;">Click the Split button (or press <strong>SPACEBAR</strong>) each time the car's front bumper crosses a 30 cm line. Human reaction time creates realistic experimental uncertainty!</span>
+          <strong style="color: #d9480f;">⏱️ Manual Timing Active (With Uncertainty):</strong>
+          <span style="font-size: 0.88rem; color: #495057; margin-left: 0.4rem;">The initial starting point at <em>t</em> = 0.00 s is logged automatically. Press <strong>SPACEBAR</strong> or click Record Split as the car crosses each marked position!</span>
         </div>
         <button id="btnManualSplit" class="manual-split-btn" disabled>⏱️ Record Split (Spacebar)</button>
       </div>
 
       <!-- Simulation Visualizer -->
-      <canvas id="simCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Visual view of a constant velocity lab track. Centimeters markings from 0 to 240 cm. Red car A and Blue car B pointing towards each other."></canvas>
+      <canvas id="simCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Visual view of a constant velocity lab track. Centimeters markings from 0 to 240 cm. Red car A on top lane, Blue car B on bottom lane."></canvas>
       
       <!-- Run Status and stopwatch -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; flex-wrap: wrap; gap: 0.8rem;">
@@ -154,7 +154,7 @@
         <!-- Red Car A Table -->
         <div>
           <div style="background: linear-gradient(135deg, #e03131, #c92a2a); color: white; padding: 0.5rem; text-align: center; font-weight: 700; border-radius: 8px 8px 0 0;">
-            Red Car A
+            Red Car A (Top)
           </div>
           <div class="table-wrap" style="border-radius: 0 0 8px 8px; border-top: none;">
             <table id="redTable">
@@ -174,7 +174,7 @@
         <!-- Blue Car B Table -->
         <div>
           <div style="background: linear-gradient(135deg, #1c7ed6, #1864ab); color: white; padding: 0.5rem; text-align: center; font-weight: 700; border-radius: 8px 8px 0 0;">
-            Blue Car B
+            Blue Car B (Bottom)
           </div>
           <div class="table-wrap" style="border-radius: 0 0 8px 8px; border-top: none;">
             <table id="blueTable">
@@ -223,14 +223,14 @@
         <span>🏁</span> Challenge: Predict the Meeting Point
       </h2>
       
-      <!-- Locked State Overlay / Prompt -->
+      <!-- Locked State Prompt -->
       <div id="challengeLockScreen" class="alert-box warning" style="padding: 1.2rem; border-color: #ffd8a8; background: #fff9db; color: #d9480f; text-align: center; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 0.4rem;">
         <span style="font-size: 1.5rem;">🔒</span>
         <strong style="font-size: 1rem;">Verify both Car A and Car B equations to unlock this challenge.</strong>
         <span style="font-size: 0.9rem;">Run both trials and click <strong>Fit Line & Extract Models</strong> to calculate their equations of motion.</span>
       </div>
 
-      <!-- Equation Verification Panel (Unlocked once regression line is computed) -->
+      <!-- Equation Verification Panel -->
       <div id="verificationContainer" style="display: none;">
         <p style="margin-bottom: 0.8rem; font-size: 0.92rem; color: var(--muted);">
           Write your derived equations of motion in the boxes below using your experimental slopes and intercepts.
@@ -240,9 +240,9 @@
             <p style="font-weight: bold; color: #c92a2a; margin-bottom: 0.4rem; font-size: 0.88rem;">Red Car A Equation</p>
             <div style="display: flex; align-items: center; gap: 0.3rem; font-family: monospace;">
               <span><i>x</i> = (</span>
-              <input type="number" id="verifyRedSlope" placeholder="slope" style="width: 70px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="0.1">
+              <input type="number" id="verifyRedSlope" placeholder="slope" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="0.1">
               <span> cm/s)<i>t</i> + </span>
-              <input type="number" id="verifyRedIntercept" placeholder="x₀" style="width: 70px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="1">
+              <input type="number" id="verifyRedIntercept" placeholder="x₀" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="1">
               <span> cm</span>
             </div>
           </div>
@@ -250,19 +250,23 @@
             <p style="font-weight: bold; color: #1864ab; margin-bottom: 0.4rem; font-size: 0.88rem;">Blue Car B Equation</p>
             <div style="display: flex; align-items: center; gap: 0.3rem; font-family: monospace;">
               <span><i>x</i> = (</span>
-              <input type="number" id="verifyBlueSlope" placeholder="slope" style="width: 70px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="0.1">
+              <input type="number" id="verifyBlueSlope" placeholder="slope" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="0.1">
               <span> cm/s)<i>t</i> + </span>
-              <input type="number" id="verifyBlueIntercept" placeholder="x₀" style="width: 70px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="1">
+              <input type="number" id="verifyBlueIntercept" placeholder="x₀" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="1">
               <span> cm</span>
             </div>
           </div>
         </div>
+
+        <!-- Inline Verification Feedback Area (No pop-ups!) -->
+        <div id="verificationFeedback" style="display: none; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.88rem; margin-bottom: 0.8rem;"></div>
+
         <div style="display: flex; justify-content: flex-end;">
           <button id="btnVerifyEquations" class="ghost" style="padding: 0.4rem 0.8rem; font-size: 0.88rem; background: #edf2ff; color: #364fc7; border-color: #bac8ff;">Verify Equations</button>
         </div>
       </div>
 
-      <!-- Solve & Prediction Panel (Active once equations are verified) -->
+      <!-- Solve & Prediction Panel -->
       <div id="predictionSolveContainer" style="display: none; border-top: 1px dashed var(--border); padding-top: 0.8rem; margin-top: 0.8rem;">
         <div class="alert-box info" style="margin-bottom: 0.8rem; background: #ebfbee; border-color: #c3fae8; color: #087f5b;">
           ✅ <strong>Equations Verified!</strong> Set the position equations equal (<span class="math-expr"><i>x</i><sub>Red</sub> = <i>x</i><sub>Blue</sub></span>) and algebraically solve for the meeting time <span class="math-expr"><i>t</i></span> and meeting position <span class="math-expr"><i>x</i></span>.
@@ -270,7 +274,7 @@
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 0.8rem;">
           <div>
             <label style="font-weight: 600; color: var(--ink);">Predicted Meeting Time (s):</label>
-            <input type="number" id="predTime" placeholder="e.g. 10.5" style="width: 100%; margin-top: 0.2rem;" step="0.01">
+            <input type="number" id="predTime" placeholder="e.g. 5.25" style="width: 100%; margin-top: 0.2rem;" step="0.01">
           </div>
           <div>
             <label style="font-weight: 600; color: var(--ink);">Predicted Meeting Position (cm):</label>
@@ -327,7 +331,7 @@
             <li>Every time the <strong>__________ (independent variable)</strong> increases by <strong>1 second</strong>, the <strong>__________ (dependent variable)</strong> changes by <strong>__________ (value and unit)</strong>.</li>
             <li>The y-intercept represents the value of <strong>__________ (dependent variable)</strong> when the <strong>__________ (independent variable)</strong> is <strong>0 seconds</strong>.</li>
           </ol>
-          <p class="hint"><em>Example template: "Every time the time increases by 1 second, the position of Red Car A increases by 15.0 cm."</em></p>
+          <p class="hint"><em>Example template: "Every time the time increases by 1 second, the position of Red Car A increases by 30.0 cm."</em></p>
         </details>
 
         <details>
@@ -346,12 +350,12 @@
         </details>
 
         <details>
-          <summary>5. CER — Experimental Uncertainty & Human Reaction Time</summary>
+          <summary>5. CER — Experimental Uncertainty & Line-of-Best-Fit Analysis</summary>
           <p><strong>Question:</strong> When using Manual Timing mode, why do data points scatter slightly around the line of best fit rather than falling on an exact line?</p>
           <ul>
             <li><strong>Claim:</strong> State the primary source of experimental uncertainty in manual stopwatch data collection.</li>
             <li><strong>Evidence:</strong> Compare your manual stopwatch split times with the auto photogate times. Cite the coefficient of determination (<span class="math-expr"><i>R</i><sup>2</sup></span>) from your line fit.</li>
-            <li><strong>Reasoning:</strong> Explain how human reaction time latency (approximately ±0.15 to 0.25 s) introduces random experimental error, and explain why drawing a <em>line of best fit</em> (linear regression) is superior to connecting the dots because it averages out random scatter.</li>
+            <li><strong>Reasoning:</strong> Explain how reaction time latency introduces random experimental error, and explain why drawing a <em>line of best fit</em> (linear regression) is superior to connecting the dots because it averages out random scatter.</li>
           </ul>
         </details>
 
@@ -387,7 +391,7 @@
               In real physics experiments, measurements have uncertainty due to:
             </p>
             <ul style="padding-left: 1.2rem; font-size: 0.88rem; margin-top: 0.3rem;">
-              <li><strong>Reaction Time Error:</strong> The human delay in observing a car cross a tape mark and pressing split (typically ±0.2 s).</li>
+              <li><strong>Reaction Timing Error:</strong> Delay in observing a car cross a tape mark and clicking split.</li>
               <li><strong>Parallax Error:</strong> Viewing the car bumper and ruler from an angle.</li>
               <li><strong>Line of Best Fit:</strong> Rather than connecting data points dot-to-dot, linear regression balances data above and below the line, canceling out random timing errors to find the true underlying velocity.</li>
             </ul>
