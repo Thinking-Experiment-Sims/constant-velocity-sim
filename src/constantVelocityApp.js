@@ -324,7 +324,7 @@ function configureCarsAvailability(mode) {
   }
 }
 
-// Reset both cars positions
+// Reset both cars positions, data tables, graphs, and challenges
 function resetAllPositions() {
   state.isRunning = false;
   state.elapsedTime = 0.0;
@@ -336,10 +336,34 @@ function resetAllPositions() {
   state.carRed.x = state.carRed.x0;
   state.carRed.wheelAngle = 0.0;
   state.carRed.crossedSensors.clear();
+  state.carRed.dataLogs = [];
   
   state.carBlue.x = state.carBlue.x0;
   state.carBlue.wheelAngle = 0.0;
   state.carBlue.crossedSensors.clear();
+  state.carBlue.dataLogs = [];
+  
+  // Reset Line fitting and graph display
+  state.isFitToggled = false;
+  btnFitLine.classList.remove('active');
+  if (equationDisplay) equationDisplay.style.display = 'none';
+  
+  // Reset Challenge state and inputs
+  state.challengeUnlocked = false;
+  state.challengeVerified = false;
+  state.predTime = null;
+  state.predPos = null;
+  if (predTimeInput) predTimeInput.value = '';
+  if (predPosInput) predPosInput.value = '';
+  if (verifyRedSlope) verifyRedSlope.value = '';
+  if (verifyRedIntercept) verifyRedIntercept.value = '';
+  if (verifyBlueSlope) verifyBlueSlope.value = '';
+  if (verifyBlueIntercept) verifyBlueIntercept.value = '';
+  
+  if (challengeLockScreen) challengeLockScreen.style.display = 'flex';
+  if (verificationContainer) verificationContainer.style.display = 'none';
+  if (predictionSolveContainer) predictionSolveContainer.style.display = 'none';
+  if (verificationFeedback) verificationFeedback.style.display = 'none';
   
   if (state.carRed.enabled && state.carBlue.enabled) {
     state.meetingPoint = calculateMeetingPoint(
@@ -360,23 +384,14 @@ function resetAllPositions() {
   statusIndicator.style.color = "var(--accent-strong)";
   statusIndicator.style.borderColor = "#b8d1db";
   
+  updateUI();
   updateTablesUI();
   draw();
   drawGraph();
 }
 
-// Clear logged data points
+// Clear logged data points (alias to resetAllPositions)
 function clearLoggedData() {
-  state.carRed.dataLogs = [];
-  state.carBlue.dataLogs = [];
-  
-  state.challengeUnlocked = false;
-  state.challengeVerified = false;
-  challengeLockScreen.style.display = 'flex';
-  verificationContainer.style.display = 'none';
-  predictionSolveContainer.style.display = 'none';
-  if (verificationFeedback) verificationFeedback.style.display = 'none';
-  
   resetAllPositions();
 }
 
