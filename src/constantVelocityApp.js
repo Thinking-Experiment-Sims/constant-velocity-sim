@@ -241,7 +241,6 @@ function setupEventListeners() {
     state.isFitToggled = !state.isFitToggled;
     if (state.isFitToggled) {
       btnFitLine.classList.add('active');
-      btnFitLine.innerHTML = '<span>📐</span> Hide Tangent / Fit Line';
       equationDisplay.style.display = 'grid';
       fitAndDisplayEquations();
       if (hasSufficientDataToFit()) {
@@ -249,7 +248,6 @@ function setupEventListeners() {
       }
     } else {
       btnFitLine.classList.remove('active');
-      btnFitLine.innerHTML = '<span>📐</span> Show Tangent / Best-Fit Line';
       equationDisplay.style.display = 'none';
     }
     drawGraph();
@@ -348,7 +346,6 @@ function resetAllPositions() {
   // Reset Line fitting and graph display
   state.isFitToggled = false;
   btnFitLine.classList.remove('active');
-  btnFitLine.innerHTML = '<span>📐</span> Show Tangent / Best-Fit Line';
   if (equationDisplay) equationDisplay.style.display = 'none';
   
   // Reset Challenge state and inputs
@@ -518,7 +515,6 @@ function animate(timestamp) {
   
   updateUI();
   draw();
-  drawGraph();
   
   requestAnimationFrame(animate);
 }
