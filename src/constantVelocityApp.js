@@ -486,7 +486,7 @@ function applyPreset(preset) {
   
   if (preset === 'sandbox') {
     sandboxControls.style.display = 'block';
-    groupInfoText.innerHTML = `<strong>Sandbox Mode:</strong> Fully custom positions ($0\text{--}240\text{ cm}$) and bidirectional velocities ($-50\text{ to }+50\text{ cm/s}$).`;
+    groupInfoText.innerHTML = `<strong>Sandbox Mode:</strong> Fully custom positions (0–240 cm) and bidirectional velocities (−50 to +50 cm/s).`;
     
     state.carRed.x0 = parseFloat(sbRedStart.value);
     state.carRed.v = parseFloat(sbRedVel.value);
