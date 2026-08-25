@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Constant Velocity: Two Cars | The Thinking Experiment</title>
+  <title>Kinematics Labs | The Thinking Experiment</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -16,390 +16,589 @@
     <header class="hero" style="background: linear-gradient(135deg, #0f7e9b, #095f76); border-left: 8px solid var(--warm); color: white; padding: 1.2rem 1.5rem; margin-top: 1rem; border-radius: 12px;">
       <div class="hero-top" style="display: flex; flex-direction: column; gap: 0.2rem;">
         <span class="kicker" style="color: #ffe8cc; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">The Thinking Experiment</span>
-        <h1 style="color: white; margin: 0.2rem 0; font-size: clamp(1.6rem, 3vw, 2.4rem); font-family: 'IBM Plex Sans', sans-serif;">Constant Velocity: Two Cars</h1>
+        <h1 id="mainTitle" style="color: white; margin: 0.2rem 0; font-size: clamp(1.6rem, 3vw, 2.4rem); font-family: 'IBM Plex Sans', sans-serif;">Kinematics: Constant & Average Velocity</h1>
         <p class="subtitle" style="color: #e6f6f9; margin-top: 0.2rem; font-size: 0.95rem; max-width: 90ch;">
-          Record crossing times — graph position vs. time — extract velocity, initial position, and analyze experimental uncertainty.
+          Interactive modeling simulations for constant velocity particles and multi-segment average velocity Arduino car labs.
         </p>
       </div>
     </header>
 
-    <!-- Group Select & Data Mode Ribbon -->
-    <div class="panel" style="margin-top: 0.8rem; padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: #a9c4cf;">
-      <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 0.4rem;">
-          <label for="groupSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Group:</label>
-          <select id="groupSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
-            <option value="1" selected>Group 1</option>
-            <option value="2">Group 2</option>
-            <option value="3">Group 3</option>
-            <option value="4">Group 4</option>
-            <option value="5">Group 5</option>
-            <option value="6">Group 6</option>
-            <option value="sandbox">Sandbox (Custom)</option>
-          </select>
-        </div>
-        
-        <div style="height: 24px; width: 2px; background: #c8dbe3;" class="divider-line"></div>
-        
-        <!-- Data Collection Mode Selector -->
-        <div style="display: flex; align-items: center; gap: 0.4rem;">
-          <label for="timingModeSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
-          <select id="timingModeSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
-            <option value="auto" selected>🤖 Auto (Photogate Sensors - Exact)</option>
-            <option value="manual">⏱️ Manual (Stopwatch Split - With Uncertainty)</option>
-          </select>
-        </div>
-      </div>
+    <!-- Activity Mode Switcher -->
+    <nav class="activity-nav" aria-label="Activity Mode Switcher">
+      <button class="activity-tab-btn active" id="btnActConstant" data-act="constant">
+        🚗 Constant Velocity (Two Cars Lab)
+      </button>
+      <button class="activity-tab-btn" id="btnActAverage" data-act="average">
+        ⚡ Average Velocity (Arduino Cars Lab)
+      </button>
+    </nav>
 
-      <div id="groupInfoText" style="font-size: 0.9rem; color: var(--muted); font-weight: 500;">
-        Car A (Red - Top): Starts at 0 cm, moving right | Car B (Blue - Bottom): Starts at 210 cm, moving left
-      </div>
-    </div>
-
-    <!-- Simulation Card -->
-    <section class="panel full" style="margin-top: 0.8rem;" aria-label="Simulation Viewer">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.6rem;">
-        <h2 style="font-size: 1.2rem; color: var(--ink); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
-          <span>🚗</span> Simulation
-        </h2>
-        
-        <!-- Controls Row -->
+    <!-- ========================================================================= -->
+    <!-- ACTIVITY 1: CONSTANT VELOCITY (TWO CARS)                                  -->
+    <!-- ========================================================================= -->
+    <div id="activity1Container">
+      <!-- Group Select & Data Mode Ribbon -->
+      <div class="panel" style="margin-top: 0.8rem; padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: #a9c4cf;">
         <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
-          <div class="button-row" style="margin: 0; gap: 0.4rem;">
-            <button id="btnRunRed" class="primary" style="background: linear-gradient(160deg, #e03131, #c92a2a); border-color: #b01e1e;">▶ Run Red Car A</button>
-            <button id="btnRunBlue" class="primary" style="background: linear-gradient(160deg, #1c7ed6, #1864ab); border-color: #12518c;">▶ Run Blue Car B</button>
-            <button id="btnReset" class="ghost" style="background: #f1f3f5; color: #495057; border-color: #ced4da;">↺ Reset All</button>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <label for="groupSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Group:</label>
+            <select id="groupSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
+              <option value="1" selected>Group 1</option>
+              <option value="2">Group 2</option>
+              <option value="3">Group 3</option>
+              <option value="4">Group 4</option>
+              <option value="5">Group 5</option>
+              <option value="6">Group 6</option>
+              <option value="sandbox">Sandbox (Custom Bidirectional)</option>
+            </select>
           </div>
-
-          <div style="display: flex; align-items: center; gap: 0.3rem;">
-            <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Speed:</span>
-            <div style="display: flex; background: #e9ecef; border-radius: 8px; padding: 2px;">
-              <button class="speed-btn" data-speed="0.5" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: transparent; border: none; color: #495057; font-weight: 600; border-radius: 6px;">0.5x</button>
-              <button class="speed-btn active" data-speed="1.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: var(--accent); border: none; color: white; font-weight: 600; border-radius: 6px;">1x</button>
-              <button class="speed-btn" data-speed="2.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: transparent; border: none; color: #495057; font-weight: 600; border-radius: 6px;">2x</button>
-            </div>
-          </div>
-
-          <div style="display: flex; align-items: center; gap: 0.3rem;">
-            <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Mode:</span>
-            <select id="modeSelect" style="padding: 0.25rem 0.5rem; border-radius: 8px; border: 1px solid #ced4da; font-size: 0.85rem; background: #ffffff; color: var(--ink);">
-              <option value="both" selected>Two Cars</option>
-              <option value="red">Red Car Only</option>
-              <option value="blue">Blue Car Only</option>
+          
+          <div style="height: 24px; width: 2px; background: #c8dbe3;" class="divider-line"></div>
+          
+          <!-- Data Collection Mode Selector -->
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <label for="timingModeSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
+            <select id="timingModeSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
+              <option value="auto" selected>🤖 Auto (Photogate Sensors - Exact)</option>
+              <option value="manual">⏱️ Manual (Stopwatch Split - With Uncertainty)</option>
             </select>
           </div>
         </div>
-      </div>
 
-      <!-- Sandbox configuration block (only visible in Sandbox mode) -->
-      <div id="sandboxControls" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.8rem;">
-        <h4 style="margin-bottom: 0.5rem; color: var(--ink);">Sandbox Custom Controls</h4>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-          <div>
-            <p style="font-weight: bold; color: #e03131; margin-bottom: 0.3rem;">Red Car A (Fast)</p>
-            <label class="range-label" style="font-size: 0.85rem;">Start position: <span id="sbRedStartVal">0</span> cm
-              <input type="range" id="sbRedStart" min="0" max="240" step="30" value="0">
-            </label>
-            <label class="range-label" style="font-size: 0.85rem; margin-top: 0.4rem;">Velocity: <span id="sbRedVelVal">30</span> cm/s
-              <input type="range" id="sbRedVel" min="5" max="50" step="5" value="30">
-            </label>
-          </div>
-          <div>
-            <p style="font-weight: bold; color: #1c7ed6; margin-bottom: 0.3rem;">Blue Car B (Slow)</p>
-            <label class="range-label" style="font-size: 0.85rem;">Start position: <span id="sbBlueStartVal">210</span> cm
-              <input type="range" id="sbBlueStart" min="0" max="240" step="30" value="210">
-            </label>
-            <label class="range-label" style="font-size: 0.85rem; margin-top: 0.4rem;">Velocity: <span id="sbBlueVelVal">-10</span> cm/s
-              <input type="range" id="sbBlueVel" min="-50" max="-5" step="5" value="-10">
-            </label>
-          </div>
+        <div id="groupInfoText" style="font-size: 0.9rem; color: var(--muted); font-weight: 500;">
+          Car A (Red - Top): Starts at 0 cm, moving right | Car B (Blue - Bottom): Starts at 210 cm, moving left
         </div>
       </div>
 
-      <!-- Manual Split Timing Action Banner -->
-      <div id="manualSplitBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
-        <div>
-          <strong style="color: #d9480f;">⏱️ Manual Timing Active (With Uncertainty):</strong>
-          <span style="font-size: 0.88rem; color: #495057; margin-left: 0.4rem;">The initial starting point at <em>t</em> = 0.00 s is logged automatically. Press <strong>SPACEBAR</strong> or click Record Split as the car crosses each marked position!</span>
-        </div>
-        <button id="btnManualSplit" class="manual-split-btn" disabled>⏱️ Record Split (Spacebar)</button>
-      </div>
-
-      <!-- Simulation Visualizer -->
-      <canvas id="simCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Visual view of a constant velocity lab track. Centimeters markings from 0 to 240 cm. Red car A on top lane, Blue car B on bottom lane."></canvas>
-      
-      <!-- Run Status and stopwatch -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; flex-wrap: wrap; gap: 0.8rem;">
-        <div id="statusIndicator" class="status-badge" style="background: #eef8fb; border: 1px solid #b8d1db; color: var(--accent-strong); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
-          Ready — select a car or click Run
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.8rem;">
-          <span style="font-size: 0.9rem; font-weight: bold; color: var(--muted); text-transform: uppercase;">Stopwatch:</span>
-          <div id="stopwatch" style="font-family: monospace; font-size: 1.4rem; font-weight: bold; background: #123140; color: #00f0ff; padding: 0.3rem 0.8rem; border-radius: 8px; min-width: 100px; text-align: center;">0.00 s</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Data Tables Card -->
-    <section class="panel full" style="margin-top: 0.8rem;" aria-labelledby="tables-heading">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.6rem;">
-        <h2 id="tables-heading" style="font-size: 1.2rem; color: var(--ink); margin: 0; display: flex; align-items: center; gap: 0.4rem;">
-          <span>📋</span> Data Tables
-        </h2>
-        <div id="modePillContainer">
-          <span class="timing-mode-pill auto" id="timingModePill">Auto Photogates Mode</span>
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem;" class="tables-grid">
-        <!-- Red Car A Table -->
-        <div>
-          <div style="background: linear-gradient(135deg, #e03131, #c92a2a); color: white; padding: 0.5rem; text-align: center; font-weight: 700; border-radius: 8px 8px 0 0;">
-            Red Car A (Top)
-          </div>
-          <div class="table-wrap" style="border-radius: 0 0 8px 8px; border-top: none;">
-            <table id="redTable">
-              <thead>
-                <tr>
-                  <th style="width: 50%; text-align: center;">Position (cm)</th>
-                  <th style="width: 50%; text-align: center;">Time (s)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Populated programmatically -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Blue Car B Table -->
-        <div>
-          <div style="background: linear-gradient(135deg, #1c7ed6, #1864ab); color: white; padding: 0.5rem; text-align: center; font-weight: 700; border-radius: 8px 8px 0 0;">
-            Blue Car B (Bottom)
-          </div>
-          <div class="table-wrap" style="border-radius: 0 0 8px 8px; border-top: none;">
-            <table id="blueTable">
-              <thead>
-                <tr>
-                  <th style="width: 50%; text-align: center;">Position (cm)</th>
-                  <th style="width: 50%; text-align: center;">Time (s)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Populated programmatically -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <div class="button-row compact" style="margin-top: 0.6rem; justify-content: flex-end;">
-        <button id="btnClearData" class="ghost" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; background: #fff5f5; color: #e03131; border-color: #ffc9c9;">Clear Data Tables</button>
-      </div>
-    </section>
-
-    <!-- Graph Card -->
-    <section class="panel full" style="margin-top: 0.8rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.6rem;">
-        <h2 style="font-size: 1.2rem; color: var(--ink); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
-          <span>📈</span> Position vs. Time Graph
-        </h2>
-        <button id="btnFitLine" class="tab-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem;">
-          <span>📐</span> Fit Line & Extract Models
-        </button>
-      </div>
-      
-      <!-- Graph Canvas -->
-      <canvas id="graphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
-
-      <!-- Fitted Line Equations Display & Uncertainty Metrics -->
-      <div id="equationDisplay" style="margin-top: 0.6rem; padding: 0.8rem; background: #f8f9fa; border: 1px solid #c8dbe3; border-radius: 8px; display: none; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-        <div id="redEquationText" style="color: #c92a2a; font-family: monospace; line-height: 1.4;">Red Car A: --</div>
-        <div id="blueEquationText" style="color: #12518c; font-family: monospace; line-height: 1.4;">Blue Car B: --</div>
-      </div>
-    </section>
-
-    <!-- Challenge Panel -->
-    <section class="panel full" style="margin-top: 0.8rem;" id="challengeSection">
-      <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
-        <span>🏁</span> Challenge: Predict the Meeting Point
-      </h2>
-      
-      <!-- Locked State Prompt -->
-      <div id="challengeLockScreen" class="alert-box warning" style="padding: 1.2rem; border-color: #ffd8a8; background: #fff9db; color: #d9480f; text-align: center; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 0.4rem;">
-        <span style="font-size: 1.5rem;">🔒</span>
-        <strong style="font-size: 1rem;">Verify both Car A and Car B equations to unlock this challenge.</strong>
-        <span style="font-size: 0.9rem;">Run both trials and click <strong>Fit Line & Extract Models</strong> to calculate their equations of motion.</span>
-      </div>
-
-      <!-- Equation Verification Panel -->
-      <div id="verificationContainer" style="display: none;">
-        <p style="margin-bottom: 0.8rem; font-size: 0.92rem; color: var(--muted);">
-          Write your derived equations of motion in the boxes below using your experimental slopes and intercepts.
-        </p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.8rem;">
-          <div style="padding: 0.6rem; background: #fff5f5; border: 1px solid #ffc9c9; border-radius: 8px;">
-            <p style="font-weight: bold; color: #c92a2a; margin-bottom: 0.4rem; font-size: 0.88rem;">Red Car A Equation</p>
-            <div style="display: flex; align-items: center; gap: 0.3rem; font-family: monospace;">
-              <span><i>x</i> = (</span>
-              <input type="number" id="verifyRedSlope" placeholder="slope" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="0.1">
-              <span> cm/s)<i>t</i> + </span>
-              <input type="number" id="verifyRedIntercept" placeholder="x₀" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="1">
-              <span> cm</span>
+      <!-- Simulation Card -->
+      <section class="panel full" style="margin-top: 0.8rem;" aria-label="Simulation Viewer">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.6rem;">
+          <h2 style="font-size: 1.2rem; color: var(--ink); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+            <span>🚗</span> Two Cars Simulation
+          </h2>
+          
+          <!-- Controls Row -->
+          <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+            <div class="button-row" style="margin: 0; gap: 0.4rem;">
+              <button id="btnRunRed" class="primary" style="background: linear-gradient(160deg, #e03131, #c92a2a); border-color: #b01e1e;">▶ Run Red Car A</button>
+              <button id="btnRunBlue" class="primary" style="background: linear-gradient(160deg, #1c7ed6, #1864ab); border-color: #12518c;">▶ Run Blue Car B</button>
+              <button id="btnReset" class="ghost" style="background: #f1f3f5; color: #495057; border-color: #ced4da;">↺ Reset All</button>
             </div>
-          </div>
-          <div style="padding: 0.6rem; background: #e7f5ff; border: 1px solid #d0ebff; border-radius: 8px;">
-            <p style="font-weight: bold; color: #1864ab; margin-bottom: 0.4rem; font-size: 0.88rem;">Blue Car B Equation</p>
-            <div style="display: flex; align-items: center; gap: 0.3rem; font-family: monospace;">
-              <span><i>x</i> = (</span>
-              <input type="number" id="verifyBlueSlope" placeholder="slope" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="0.1">
-              <span> cm/s)<i>t</i> + </span>
-              <input type="number" id="verifyBlueIntercept" placeholder="x₀" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="1">
-              <span> cm</span>
+
+            <div style="display: flex; align-items: center; gap: 0.3rem;">
+              <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Speed:</span>
+              <div style="display: flex; background: #e9ecef; border-radius: 8px; padding: 2px;">
+                <button class="speed-btn" data-speed="0.5" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">0.5x</button>
+                <button class="speed-btn active" data-speed="1.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">1x</button>
+                <button class="speed-btn" data-speed="2.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">2x</button>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.3rem;">
+              <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Mode:</span>
+              <select id="modeSelect" style="padding: 0.25rem 0.5rem; border-radius: 8px; border: 1px solid #ced4da; font-size: 0.85rem; background: #ffffff; color: var(--ink);">
+                <option value="both" selected>Two Cars</option>
+                <option value="red">Red Car Only</option>
+                <option value="blue">Blue Car Only</option>
+              </select>
             </div>
           </div>
         </div>
 
-        <!-- Inline Verification Feedback Area (No pop-ups!) -->
-        <div id="verificationFeedback" style="display: none; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.88rem; margin-bottom: 0.8rem;"></div>
+        <!-- Sandbox configuration block (Full Bidirectional Controls) -->
+        <div id="sandboxControls" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.8rem;">
+          <h4 style="margin-bottom: 0.5rem; color: var(--ink);">Sandbox Custom Bidirectional Controls</h4>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <!-- Red Car Sandbox Controls -->
+            <div style="background: #fff5f5; border: 1px solid #ffc9c9; border-radius: 8px; padding: 0.6rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                <span style="font-weight: bold; color: #e03131;">Red Car A (Top)</span>
+                <div style="display: flex; gap: 0.2rem;">
+                  <button type="button" class="dir-toggle-btn" id="sbRedDirLeft">◀ Left (-)</button>
+                  <button type="button" class="dir-toggle-btn active" id="sbRedDirRight">▶ Right (+)</button>
+                </div>
+              </div>
+              <label class="range-label" style="font-size: 0.85rem;">Start position: <span id="sbRedStartVal">0</span> cm
+                <input type="range" id="sbRedStart" min="0" max="240" step="30" value="0">
+              </label>
+              <label class="range-label" style="font-size: 0.85rem; margin-top: 0.4rem;">Velocity: <span id="sbRedVelVal">+30</span> cm/s
+                <input type="range" id="sbRedVel" min="-50" max="50" step="5" value="30">
+              </label>
+            </div>
 
-        <div style="display: flex; justify-content: flex-end;">
-          <button id="btnVerifyEquations" class="ghost" style="padding: 0.4rem 0.8rem; font-size: 0.88rem; background: #edf2ff; color: #364fc7; border-color: #bac8ff;">Verify Equations</button>
+            <!-- Blue Car Sandbox Controls -->
+            <div style="background: #e7f5ff; border: 1px solid #d0ebff; border-radius: 8px; padding: 0.6rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                <span style="font-weight: bold; color: #1c7ed6;">Blue Car B (Bottom)</span>
+                <div style="display: flex; gap: 0.2rem;">
+                  <button type="button" class="dir-toggle-btn active" id="sbBlueDirLeft">◀ Left (-)</button>
+                  <button type="button" class="dir-toggle-btn" id="sbBlueDirRight">▶ Right (+)</button>
+                </div>
+              </div>
+              <label class="range-label" style="font-size: 0.85rem;">Start position: <span id="sbBlueStartVal">210</span> cm
+                <input type="range" id="sbBlueStart" min="0" max="240" step="30" value="210">
+              </label>
+              <label class="range-label" style="font-size: 0.85rem; margin-top: 0.4rem;">Velocity: <span id="sbBlueVelVal">-10</span> cm/s
+                <input type="range" id="sbBlueVel" min="-50" max="50" step="5" value="-10">
+              </label>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Solve & Prediction Panel -->
-      <div id="predictionSolveContainer" style="display: none; border-top: 1px dashed var(--border); padding-top: 0.8rem; margin-top: 0.8rem;">
-        <div class="alert-box info" style="margin-bottom: 0.8rem; background: #ebfbee; border-color: #c3fae8; color: #087f5b;">
-          ✅ <strong>Equations Verified!</strong> Set the position equations equal (<span class="math-expr"><i>x</i><sub>Red</sub> = <i>x</i><sub>Blue</sub></span>) and algebraically solve for the meeting time <span class="math-expr"><i>t</i></span> and meeting position <span class="math-expr"><i>x</i></span>.
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 0.8rem;">
+        <!-- Manual Split Timing Action Banner -->
+        <div id="manualSplitBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
           <div>
-            <label style="font-weight: 600; color: var(--ink);">Predicted Meeting Time (s):</label>
-            <input type="number" id="predTime" placeholder="e.g. 5.25" style="width: 100%; margin-top: 0.2rem;" step="0.01">
+            <strong style="color: #d9480f;">⏱️ Manual Timing Active (With Uncertainty):</strong>
+            <span style="font-size: 0.88rem; color: #495057; margin-left: 0.4rem;">The initial starting point at <em>t</em> = 0.00 s is logged automatically. Press <strong>SPACEBAR</strong> or click Record Split as the car crosses each marked position!</span>
           </div>
+          <button id="btnManualSplit" class="manual-split-btn" disabled>⏱️ Record Split (Spacebar)</button>
+        </div>
+
+        <!-- Simulation Visualizer -->
+        <canvas id="simCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Visual view of a constant velocity lab track. Centimeters markings from 0 to 240 cm. Red car A on top lane, Blue car B on bottom lane."></canvas>
+        
+        <!-- Run Status and stopwatch -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; flex-wrap: wrap; gap: 0.8rem;">
+          <div id="statusIndicator" class="status-badge" style="background: #eef8fb; border: 1px solid #b8d1db; color: var(--accent-strong); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+            Ready — select a car or click Run
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <span style="font-size: 0.9rem; font-weight: bold; color: var(--muted); text-transform: uppercase;">Stopwatch:</span>
+            <div id="stopwatch" style="font-family: monospace; font-size: 1.4rem; font-weight: bold; background: #123140; color: #00f0ff; padding: 0.3rem 0.8rem; border-radius: 8px; min-width: 100px; text-align: center;">0.00 s</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data Tables Card -->
+      <section class="panel full" style="margin-top: 0.8rem;" aria-labelledby="tables-heading">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.6rem;">
+          <h2 id="tables-heading" style="font-size: 1.2rem; color: var(--ink); margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📋</span> Data Tables
+          </h2>
+          <div id="modePillContainer">
+            <span class="timing-mode-pill auto" id="timingModePill">Auto Photogates Mode</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem;" class="tables-grid">
+          <!-- Red Car A Table -->
           <div>
-            <label style="font-weight: 600; color: var(--ink);">Predicted Meeting Position (cm):</label>
-            <input type="number" id="predPos" placeholder="e.g. 157.5" style="width: 100%; margin-top: 0.2rem;" step="0.1">
+            <div style="background: linear-gradient(135deg, #e03131, #c92a2a); color: white; padding: 0.5rem; text-align: center; font-weight: 700; border-radius: 8px 8px 0 0;">
+              Red Car A (Top)
+            </div>
+            <div class="table-wrap" style="border-radius: 0 0 8px 8px; border-top: none;">
+              <table id="redTable">
+                <thead>
+                  <tr>
+                    <th style="width: 50%; text-align: center;">Position (cm)</th>
+                    <th style="width: 50%; text-align: center;">Time (s)</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Blue Car B Table -->
+          <div>
+            <div style="background: linear-gradient(135deg, #1c7ed6, #1864ab); color: white; padding: 0.5rem; text-align: center; font-weight: 700; border-radius: 8px 8px 0 0;">
+              Blue Car B (Bottom)
+            </div>
+            <div class="table-wrap" style="border-radius: 0 0 8px 8px; border-top: none;">
+              <table id="blueTable">
+                <thead>
+                  <tr>
+                    <th style="width: 50%; text-align: center;">Position (cm)</th>
+                    <th style="width: 50%; text-align: center;">Time (s)</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
           </div>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
-          <div id="challengeResultText" style="font-size: 0.9rem; font-weight: 600; color: var(--muted);">
-            Type your predicted values to preview the prediction marker on both the Track and Graph.
+        <div class="button-row compact" style="margin-top: 0.6rem; justify-content: flex-end;">
+          <button id="btnClearData" class="ghost" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; background: #fff5f5; color: #e03131; border-color: #ffc9c9;">Clear Data Tables</button>
+        </div>
+      </section>
+
+      <!-- Graph Card -->
+      <section class="panel full" style="margin-top: 0.8rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; gap: 0.6rem;">
+          <h2 style="font-size: 1.2rem; color: var(--ink); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+            <span>📈</span> Position vs. Time Graph
+          </h2>
+          <button id="btnFitLine" class="tab-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem;">
+            <span>📐</span> Fit Line & Extract Models
+          </button>
+        </div>
+        
+        <!-- Graph Canvas -->
+        <canvas id="graphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
+
+        <!-- Fitted Line Equations Display -->
+        <div id="equationDisplay" style="margin-top: 0.6rem; padding: 0.8rem; background: #f8f9fa; border: 1px solid #c8dbe3; border-radius: 8px; display: none; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+          <div id="redEquationText" style="color: #c92a2a; font-family: monospace; line-height: 1.4;">Red Car A: --</div>
+          <div id="blueEquationText" style="color: #12518c; font-family: monospace; line-height: 1.4;">Blue Car B: --</div>
+        </div>
+      </section>
+
+      <!-- Challenge Panel -->
+      <section class="panel full" style="margin-top: 0.8rem;" id="challengeSection">
+        <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>🏁</span> Challenge: Predict the Meeting Point
+        </h2>
+        
+        <!-- Locked State Prompt -->
+        <div id="challengeLockScreen" class="alert-box warning" style="padding: 1.2rem; border-color: #ffd8a8; background: #fff9db; color: #d9480f; text-align: center; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 0.4rem;">
+          <span style="font-size: 1.5rem;">🔒</span>
+          <strong style="font-size: 1rem;">Verify both Car A and Car B equations to unlock this challenge.</strong>
+          <span style="font-size: 0.9rem;">Run both trials and click <strong>Fit Line & Extract Models</strong> to calculate their equations of motion.</span>
+        </div>
+
+        <!-- Equation Verification Panel -->
+        <div id="verificationContainer" style="display: none;">
+          <p style="margin-bottom: 0.8rem; font-size: 0.92rem; color: var(--muted);">
+            Write your derived equations of motion in the boxes below using your experimental slopes and intercepts.
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.8rem;">
+            <div style="padding: 0.6rem; background: #fff5f5; border: 1px solid #ffc9c9; border-radius: 8px;">
+              <p style="font-weight: bold; color: #c92a2a; margin-bottom: 0.4rem; font-size: 0.88rem;">Red Car A Equation</p>
+              <div style="display: flex; align-items: center; gap: 0.3rem; font-family: monospace;">
+                <span><i>x</i> = (</span>
+                <input type="number" id="verifyRedSlope" placeholder="slope" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="0.1">
+                <span> cm/s)<i>t</i> + </span>
+                <input type="number" id="verifyRedIntercept" placeholder="x₀" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="1">
+                <span> cm</span>
+              </div>
+            </div>
+            <div style="padding: 0.6rem; background: #e7f5ff; border: 1px solid #d0ebff; border-radius: 8px;">
+              <p style="font-weight: bold; color: #1864ab; margin-bottom: 0.4rem; font-size: 0.88rem;">Blue Car B Equation</p>
+              <div style="display: flex; align-items: center; gap: 0.3rem; font-family: monospace;">
+                <span><i>x</i> = (</span>
+                <input type="number" id="verifyBlueSlope" placeholder="slope" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="0.1">
+                <span> cm/s)<i>t</i> + </span>
+                <input type="number" id="verifyBlueIntercept" placeholder="x₀" style="width: 75px; padding: 0.2rem 0.4rem; font-size: 0.85rem;" step="1">
+                <span> cm</span>
+              </div>
+            </div>
           </div>
-          <button id="btnRunChallenge" class="primary" style="background: linear-gradient(160deg, #d67b19, #b1620e); border-color: #9c5307;">Test Prediction & Run both cars!</button>
+
+          <!-- Inline Verification Feedback Area -->
+          <div id="verificationFeedback" style="display: none; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.88rem; margin-bottom: 0.8rem;"></div>
+
+          <div style="display: flex; justify-content: flex-end;">
+            <button id="btnVerifyEquations" class="ghost" style="padding: 0.4rem 0.8rem; font-size: 0.88rem; background: #edf2ff; color: #364fc7; border-color: #bac8ff;">Verify Equations</button>
+          </div>
+        </div>
+
+        <!-- Solve & Prediction Panel -->
+        <div id="predictionSolveContainer" style="display: none; border-top: 1px dashed var(--border); padding-top: 0.8rem; margin-top: 0.8rem;">
+          <div class="alert-box info" style="margin-bottom: 0.8rem; background: #ebfbee; border-color: #c3fae8; color: #087f5b;">
+            ✅ <strong>Equations Verified!</strong> Set the position equations equal (<span class="math-expr"><i>x</i><sub>Red</sub> = <i>x</i><sub>Blue</sub></span>) and algebraically solve for the meeting time <span class="math-expr"><i>t</i></span> and meeting position <span class="math-expr"><i>x</i></span>.
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 0.8rem;">
+            <div>
+              <label style="font-weight: 600; color: var(--ink);">Predicted Meeting Time (s):</label>
+              <input type="number" id="predTime" placeholder="e.g. 5.25" style="width: 100%; margin-top: 0.2rem;" step="0.01">
+            </div>
+            <div>
+              <label style="font-weight: 600; color: var(--ink);">Predicted Meeting Position (cm):</label>
+              <input type="number" id="predPos" placeholder="e.g. 157.5" style="width: 100%; margin-top: 0.2rem;" step="0.1">
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
+            <div id="challengeResultText" style="font-size: 0.9rem; font-weight: 600; color: var(--muted);">
+              Type your predicted values to preview the prediction marker on both the Track and Graph.
+            </div>
+            <button id="btnRunChallenge" class="primary" style="background: linear-gradient(160deg, #d67b19, #b1620e); border-color: #9c5307;">Test Prediction & Run both cars!</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Guided Inquiry Accordions (Constant Velocity) -->
+      <section class="panel full" style="margin-top: 0.8rem;">
+        <div class="tab-nav" role="tablist">
+          <button class="tab-btn active" role="tab" aria-selected="true" id="tabGuidedBtn">Guided Inquiry Questions (CER)</button>
+          <button class="tab-btn" role="tab" aria-selected="false" id="tabTheoryBtn">Theory, Modeling & Uncertainty</button>
+        </div>
+
+        <div class="tab-panel active" id="panelGuided" role="tabpanel">
+          <h2 style="font-size: 1.15rem; color: var(--ink); margin-top: 0.5rem;">Guided Discovery Questions</h2>
+          <details open>
+            <summary>1. CER — Starting Position (y-intercept)</summary>
+            <p><strong>Question:</strong> What physical quantity does the y-intercept of the position-vs-time graph represent for each car?</p>
+            <ul>
+              <li><strong>Claim:</strong> State clearly what physical quantity matches the y-intercept.</li>
+              <li><strong>Evidence:</strong> Observe the coordinate at time <span class="math-expr"><i>t</i> = 0 s</span>.</li>
+              <li><strong>Reasoning:</strong> Explain why the initial starting position <span class="math-expr"><i>x</i><sub>0</sub></span> matches the mathematical y-intercept.</li>
+            </ul>
+          </details>
+          <details>
+            <summary>2. CER — Direction of Motion (slope sign)</summary>
+            <p><strong>Question:</strong> What does the sign (+ or −) of the slope tell you about the car's motion?</p>
+            <ul>
+              <li><strong>Claim:</strong> Answer the question directly in one clear sentence.</li>
+              <li><strong>Reasoning:</strong> Explain why motion toward increasing positions gives a positive slope (<span class="math-expr">Δ<i>x</i> &gt; 0</span>), whereas motion toward decreasing positions gives a negative slope (<span class="math-expr">Δ<i>x</i> &lt; 0</span>).</li>
+            </ul>
+          </details>
+          <details>
+            <summary>3. CER — Experimental Uncertainty & Line-of-Best-Fit Analysis</summary>
+            <p><strong>Question:</strong> When using Manual Timing mode, why do data points scatter slightly around the line of best fit rather than falling on an exact line?</p>
+            <ul>
+              <li><strong>Claim:</strong> State the primary source of experimental uncertainty in manual stopwatch data collection.</li>
+              <li><strong>Reasoning:</strong> Explain how reaction time latency introduces random error, and why drawing a linear regression line of best fit averages out random scatter.</li>
+            </ul>
+          </details>
+        </div>
+
+        <div class="tab-panel" id="panelTheory" role="tabpanel">
+          <h2 style="font-size: 1.15rem; color: var(--ink); margin-top: 0.5rem;">Constant Velocity Theory Reference</h2>
+          <div class="math-expr display"><i>x</i>(<i>t</i>) = <i>v</i> · <i>t</i> + <i>x</i><sub>0</sub></div>
+          <p style="margin-top: 0.5rem;">When velocity is constant, average velocity equals instantaneous velocity at all times, producing a straight line on position vs. time graphs.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- ACTIVITY 2: AVERAGE VELOCITY (ARDUINO CARS LAB)                           -->
+    <!-- ========================================================================= -->
+    <div id="activity2Container" style="display: none;">
+      <!-- Group & Trip Select Ribbon -->
+      <div class="panel" style="margin-top: 0.8rem; padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: #a9c4cf;">
+        <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <label for="avgGroupSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Group:</label>
+            <select id="avgGroupSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
+              <option value="A" selected>Group A</option>
+              <option value="B">Group B</option>
+              <option value="C">Group C</option>
+              <option value="D">Group D</option>
+              <option value="E">Group E</option>
+              <option value="F">Group F</option>
+              <option value="custom">Custom Trip (1–8)</option>
+            </select>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <label for="avgTrialSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Trial:</label>
+            <select id="avgTrialSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
+              <option value="trial1" selected>Trial 1</option>
+              <option value="trial2">Trial 2</option>
+            </select>
+          </div>
+
+          <!-- Trip Select (Shown when Custom is selected) -->
+          <div id="customTripWrapper" style="display: none; align-items: center; gap: 0.4rem;">
+            <label for="avgTripSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Trip:</label>
+            <select id="avgTripSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
+              <option value="1">Trip 1 (Slow Fwd, Fast Fwd)</option>
+              <option value="2">Trip 2 (Fast Back, Slow Back)</option>
+              <option value="3">Trip 3 (Slow Fwd, Fast Fwd 0→40→200)</option>
+              <option value="4">Trip 4 (Slow Back, Fast Back)</option>
+              <option value="5">Trip 5 (Slow Fwd, Fast Back 0→100→0)</option>
+              <option value="6">Trip 6 (Fast Fwd, Slow Back 0→100→0)</option>
+              <option value="7">Trip 7 (Fast Back, Slow Fwd 200→40→80)</option>
+              <option value="8">Trip 8 (Slow Fwd, Fast Back 0→160→120)</option>
+            </select>
+          </div>
+
+          <div style="height: 24px; width: 2px; background: #c8dbe3;" class="divider-line"></div>
+
+          <!-- Timing Mode Selector -->
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <label for="avgTimingModeSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
+            <select id="avgTimingModeSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
+              <option value="auto" selected>🤖 Auto (Sensor Ticks - Exact)</option>
+              <option value="manual">⏱️ Manual (Stopwatch Split - With Uncertainty)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="avgTripInfoText" style="font-size: 0.9rem; color: #0b5f77; font-weight: 600; background: #eef8fb; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid #c8dbe3;">
+          Trip 1: Slow forward from 0 to 100 cm, then fast forward from 100 to 200 cm
         </div>
       </div>
-    </section>
 
-    <!-- Guided Inquiry Accordions -->
-    <section class="panel full" style="margin-top: 0.8rem;">
-      <div class="tab-nav" role="tablist">
-        <button class="tab-btn active" role="tab" aria-selected="true" id="tabGuidedBtn">Guided Inquiry Questions (CER)</button>
-        <button class="tab-btn" role="tab" aria-selected="false" id="tabTheoryBtn">Theory, Modeling & Uncertainty</button>
-      </div>
+      <!-- Average Velocity Simulation Card -->
+      <section class="panel full" style="margin-top: 0.8rem;" aria-label="Average Velocity Simulator">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.6rem;">
+          <h2 style="font-size: 1.2rem; color: var(--ink); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+            <span>⚡</span> Arduino Car Track Simulator
+          </h2>
 
-      <!-- Tab Content: Guided Inquiry -->
-      <div class="tab-panel active" id="panelGuided" role="tabpanel" aria-labelledby="tabGuidedBtn">
-        <h2 style="font-size: 1.15rem; color: var(--ink); margin-top: 0.5rem;">Guided Discovery Questions</h2>
-        <p style="margin-bottom: 0.8rem; font-size: 0.9rem;">
-          Run the simulation to gather evidence and answer the following questions on your lab report using the <strong>Claim, Evidence, and Reasoning (CER)</strong> framework.
-        </p>
+          <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+            <div class="button-row" style="margin: 0; gap: 0.4rem;">
+              <button id="btnRunAvgTrip" class="primary" style="background: linear-gradient(160deg, #0f7e9b, #095f76); border-color: #074758;">▶ Run Arduino Car Trip</button>
+              <button id="btnResetAvgTrip" class="ghost" style="background: #f1f3f5; color: #495057; border-color: #ced4da;">↺ Reset Trip</button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.3rem;">
+              <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Speed:</span>
+              <div style="display: flex; background: #e9ecef; border-radius: 8px; padding: 2px;">
+                <button class="avg-speed-btn" data-speed="0.5" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">0.5x</button>
+                <button class="avg-speed-btn active" data-speed="1.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">1x</button>
+                <button class="avg-speed-btn" data-speed="2.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">2x</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Split Timing Action Banner for Avg Mode -->
+        <div id="avgManualSplitBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
+          <div>
+            <strong style="color: #d9480f;">⏱️ Manual Stopwatch Timing Active:</strong>
+            <span style="font-size: 0.88rem; color: #495057; margin-left: 0.4rem;">Click Record Split (or press <strong>SPACEBAR</strong>) when the car reaches the initial position, transition tape mark (<span id="bannerTapePos">100</span> cm), and finish position!</span>
+          </div>
+          <button id="btnAvgManualSplit" class="manual-split-btn" disabled>⏱️ Record Split (Spacebar)</button>
+        </div>
+
+        <!-- Arduino Simulation Canvas -->
+        <canvas id="avgSimCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Visual view of Arduino Car multi-segment track"></canvas>
+
+        <!-- Status & Stopwatch -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; flex-wrap: wrap; gap: 0.8rem;">
+          <div id="avgStatusIndicator" class="status-badge" style="background: #eef8fb; border: 1px solid #b8d1db; color: var(--accent-strong); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+            Ready — click Run Arduino Car Trip
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <span style="font-size: 0.9rem; font-weight: bold; color: var(--muted); text-transform: uppercase;">Stopwatch:</span>
+            <div id="avgStopwatch" style="font-family: monospace; font-size: 1.4rem; font-weight: bold; background: #123140; color: #00f0ff; padding: 0.3rem 0.8rem; border-radius: 8px; min-width: 100px; text-align: center;">0.00 s</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Average Velocity Data & Calculations Section -->
+      <section class="panel full" style="margin-top: 0.8rem;">
+        <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>📊</span> Data Collection & Kinematic Calculations
+        </h2>
+
+        <!-- Raw Data Points Table -->
+        <div class="table-wrap" style="border-radius: 8px; margin-bottom: 1rem;">
+          <table>
+            <thead>
+              <tr style="background: #0f7e9b; color: white;">
+                <th style="color: white; width: 33%;">Checkpoint Event</th>
+                <th style="color: white; width: 33%;">Position <i>X</i> (cm)</th>
+                <th style="color: white; width: 33%;">Clock Time <i>t</i> (s)</th>
+              </tr>
+            </thead>
+            <tbody id="avgDataTableBody">
+              <tr>
+                <td><strong>Start (<i>X</i><sub>0</sub>)</strong></td>
+                <td id="tableX0">0 cm</td>
+                <td id="tableT0">—</td>
+              </tr>
+              <tr>
+                <td><strong>Transition Tape (<i>X</i><sub>tape</sub>)</strong></td>
+                <td id="tableXTape">100 cm</td>
+                <td id="tableTTape">—</td>
+              </tr>
+              <tr>
+                <td><strong>Finish (<i>X</i><sub>f</sub>)</strong></td>
+                <td id="tableXf">200 cm</td>
+                <td id="tableTf">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Calculated Kinematics Metrics Summary Cards -->
+        <h3 style="font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem;">Trip Kinematic Calculations</h3>
+        <div class="metric-grid">
+          <!-- Segment 1 -->
+          <div class="metric-card">
+            <div class="title">Segment 1 Velocity (<i>v</i>₁)</div>
+            <div class="val" id="metricV1" style="color: #0f7e9b;">—</div>
+            <div class="sub" id="metricV1Sub">Δ<i>x</i>₁ / Δ<i>t</i>₁</div>
+          </div>
+
+          <!-- Segment 2 -->
+          <div class="metric-card">
+            <div class="title">Segment 2 Velocity (<i>v</i>₂)</div>
+            <div class="val" id="metricV2" style="color: #0f7e9b;">—</div>
+            <div class="sub" id="metricV2Sub">Δ<i>x</i>₂ / Δ<i>t</i>₂</div>
+          </div>
+
+          <!-- Total Displacement -->
+          <div class="metric-card accent">
+            <div class="title">Total Displacement (Δ<i>x</i>)</div>
+            <div class="val" id="metricDx" style="color: #d67b19;">—</div>
+            <div class="sub"><i>X</i><sub>f</sub> − <i>X</i><sub>0</sub></div>
+          </div>
+
+          <!-- Total Distance -->
+          <div class="metric-card accent">
+            <div class="title">Total Distance (<i>d</i>)</div>
+            <div class="val" id="metricDist" style="color: #d67b19;">—</div>
+            <div class="sub">|Δ<i>x</i>₁| + |Δ<i>x</i>₂|</div>
+          </div>
+
+          <!-- Average Velocity -->
+          <div class="metric-card highlight">
+            <div class="title">Average Velocity (<i>v</i><sub>avg</sub>)</div>
+            <div class="val" id="metricVavg" style="color: #1a7f4e;">—</div>
+            <div class="sub">Total Δ<i>x</i> / Total Δ<i>t</i></div>
+          </div>
+
+          <!-- Average Speed -->
+          <div class="metric-card highlight">
+            <div class="title">Average Speed</div>
+            <div class="val" id="metricSpeedAvg" style="color: #1a7f4e;">—</div>
+            <div class="sub">Total Distance / Total Δ<i>t</i></div>
+          </div>
+        </div>
+
+        <!-- Misconception Alert Callout -->
+        <div id="misconceptionCallout" class="alert-box warning" style="display: none; margin-top: 1rem;">
+          <strong>💡 Physics Insight: Average Velocity vs. Arithmetic Mean</strong><br>
+          <span id="misconceptionText">Notice that average velocity is NOT the arithmetic average (<i>v</i>₁ + <i>v</i>₂) / 2 because the car spent unequal amounts of time in each segment!</span>
+        </div>
+      </section>
+
+      <!-- Average Velocity Graph Card -->
+      <section class="panel full" style="margin-top: 0.8rem;">
+        <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>📈</span> Multi-Segment Position vs. Time Graph
+        </h2>
+        <canvas id="avgGraphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
+      </section>
+
+      <!-- Guided Discovery (Average Velocity CER) -->
+      <section class="panel full" style="margin-top: 0.8rem;">
+        <h2 style="font-size: 1.15rem; color: var(--ink); margin-bottom: 0.6rem;">Average Velocity Guided Inquiry (CER)</h2>
 
         <details open>
-          <summary>1. CER — Starting Position (y-intercept)</summary>
-          <p><strong>Question:</strong> What physical quantity does the y-intercept of the position-vs-time graph represent for each car?</p>
+          <summary>1. CER — Displacement vs. Distance</summary>
+          <p><strong>Question:</strong> In trips where the car moves forward and then returns (e.g. Trip 5 / 6), why is the total displacement zero or small while total distance is large?</p>
           <ul>
-            <li><strong>Claim:</strong> State clearly what physical quantity matches the y-intercept.</li>
-            <li><strong>Evidence:</strong> Select your group's scenario. Run Trial A (Red) and Trial B (Blue). Observe the starting coordinate of each car at time <span class="math-expr"><i>t</i> = 0 s</span> and note their values.</li>
-            <li><strong>Reasoning:</strong> Explain why the initial starting position <span class="math-expr"><i>x</i><sub>0</sub></span> and the mathematical y-intercept must be equal in an accurate model of constant velocity motion.</li>
+            <li><strong>Claim:</strong> Define the difference between displacement and distance in terms of vectors and scalars.</li>
+            <li><strong>Evidence:</strong> Cite your calculated total displacement (<span class="math-expr">Δ<i>x</i> = <i>X</i><sub>f</sub> − <i>X</i><sub>0</sub></span>) and total distance (<span class="math-expr"><i>d</i> = |Δ<i>x</i>₁| + |Δ<i>x</i>₂|</span>).</li>
+            <li><strong>Reasoning:</strong> Explain why direction cancels out in displacement but adds up in total distance traveled.</li>
           </ul>
         </details>
 
         <details>
-          <summary>2. CER — Direction of Motion (slope sign)</summary>
-          <p><strong>Question:</strong> What does the sign (+ or −) of the slope tell you about the car's motion?</p>
+          <summary>2. CER — Average Velocity vs. Average Speed</summary>
+          <p><strong>Question:</strong> Under what condition will average velocity equal average speed, and when will they differ?</p>
           <ul>
-            <li><strong>Claim:</strong> Answer the question directly in one clear sentence.</li>
-            <li><strong>Evidence:</strong> Contrast Red Car A (moving right) and Blue Car B (moving left). What is the sign of the slope/velocity for each? What happens to their positions as time increases?</li>
-            <li><strong>Reasoning:</strong> Explain why motion toward increasing positions gives a positive slope (<span class="math-expr">Δ<i>x</i> &gt; 0</span>), whereas motion toward decreasing positions gives a negative slope (<span class="math-expr">Δ<i>x</i> &lt; 0</span>).</li>
+            <li><strong>Claim:</strong> State the exact motion condition required for average velocity magnitude to equal average speed.</li>
+            <li><strong>Evidence:</strong> Compare trips with no turnarounds (Trip 1) against turnaround trips (Trip 5/6).</li>
+            <li><strong>Reasoning:</strong> Relate the definitions <span class="math-expr"><i>v</i><sub>avg</sub> = Δ<i>x</i> / Δ<i>t</i></span> and <span class="math-expr">Speed<sub>avg</sub> = <i>d</i> / Δ<i>t</i></span> to the path direction.</li>
           </ul>
         </details>
 
         <details>
-          <summary>3. Interpreting Slope and Y-Intercept Mathematically</summary>
-          <p><strong>Task:</strong> Fill in the blanks to interpret the slope and y-intercept of your motion graphs.</p>
-          <ol type="a">
-            <li>Every time the <strong>__________ (independent variable)</strong> increases by <strong>1 second</strong>, the <strong>__________ (dependent variable)</strong> changes by <strong>__________ (value and unit)</strong>.</li>
-            <li>The y-intercept represents the value of <strong>__________ (dependent variable)</strong> when the <strong>__________ (independent variable)</strong> is <strong>0 seconds</strong>.</li>
-          </ol>
-          <p class="hint"><em>Example template: "Every time the time increases by 1 second, the position of Red Car A increases by 30.0 cm."</em></p>
-        </details>
-
-        <details>
-          <summary>4. CER — Why Slope Represents Velocity</summary>
-          <p><strong>Question:</strong> State what physical quantity the slope of a position-vs-time graph represents, and explain why.</p>
+          <summary>3. CER — Why Average Velocity is NOT (<i>v</i>₁ + <i>v</i>₂) / 2</summary>
+          <p><strong>Question:</strong> Why is the overall average velocity almost never equal to the simple arithmetic average of the two segment speeds?</p>
           <ul>
-            <li><strong>Claim:</strong> Identify the physical quantity represented by the slope.</li>
-            <li><strong>Evidence:</strong> Write the mathematical definition of slope:
-              <div class="math-expr display">slope = <span style="display:inline-block; vertical-align:middle; text-align:center;"><span style="display:block; border-bottom:1px solid;">Δ<i>y</i></span><span style="display:block;">Δ<i>x</i></span></span> = <span style="display:inline-block; vertical-align:middle; text-align:center;"><span style="display:block; border-bottom:1px solid;"><i>y</i><sub>2</sub> − <i>y</i><sub>1</sub></span><span style="display:block;"><i>x</i><sub>2</sub> − <i>x</i><sub>1</sub></span></span></div>
-              Then write the physics definition of average velocity:
-              <div class="math-expr display"><i>v</i><sub>avg</sub> = <span style="display:inline-block; vertical-align:middle; text-align:center;"><span style="display:block; border-bottom:1px solid;">Δ<i>x</i></span><span style="display:block;">Δ<i>t</i></span></span> = <span style="display:inline-block; vertical-align:middle; text-align:center;"><span style="display:block; border-bottom:1px solid;"><i>x</i><sub>f</sub> − <i>x</i><sub>i</sub></span><span style="display:block;"><i>t</i><sub>f</sub> − <i>t</i><sub>i</sub></span></span></div>
-              Compare the numerator and denominator units.
-            </li>
-            <li><strong>Reasoning:</strong> Explain how matching the numerator (change in position) and denominator (change in time) connects the math concept of slope to the physics definition of velocity.</li>
+            <li><strong>Claim:</strong> Explain why average velocity is a time-weighted average rather than an unweighted average.</li>
+            <li><strong>Reasoning:</strong> The car spends more time at the slower speed than at the faster speed. Therefore, the slower speed pulls the true average velocity closer to itself!</li>
           </ul>
         </details>
-
-        <details>
-          <summary>5. CER — Experimental Uncertainty & Line-of-Best-Fit Analysis</summary>
-          <p><strong>Question:</strong> When using Manual Timing mode, why do data points scatter slightly around the line of best fit rather than falling on an exact line?</p>
-          <ul>
-            <li><strong>Claim:</strong> State the primary source of experimental uncertainty in manual stopwatch data collection.</li>
-            <li><strong>Evidence:</strong> Compare your manual stopwatch split times with the auto photogate times. Cite the coefficient of determination (<span class="math-expr"><i>R</i><sup>2</sup></span>) from your line fit.</li>
-            <li><strong>Reasoning:</strong> Explain how reaction time latency introduces random experimental error, and explain why drawing a <em>line of best fit</em> (linear regression) is superior to connecting the dots because it averages out random scatter.</li>
-          </ul>
-        </details>
-
-        <details>
-          <summary>6. Limits of the Constant Velocity Particle Model</summary>
-          <p><strong>Question:</strong> Our mathematical model assumes the cars move at exactly constant velocity forever. Give one specific physical reason this assumption breaks down in a real laboratory, and describe what the position-vs-time graph would look like if data collection continued.</p>
-          <p class="hint"><em>Consider battery depletion, motor warming, track friction variations, or hitting the end stops. How would the curve shape change?</em></p>
-        </details>
-      </div>
-
-      <!-- Tab Content: Theory -->
-      <div class="tab-panel" id="panelTheory" role="tabpanel" aria-labelledby="tabTheoryBtn">
-        <h2 style="font-size: 1.15rem; color: var(--ink); margin-top: 0.5rem;">Theory & Modeling Reference</h2>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-top: 0.6rem;">
-          <div>
-            <h3 style="font-size: 1rem; color: var(--ink);">The Constant Velocity Particle Model (CVPM)</h3>
-            <p style="font-size: 0.9rem; line-height: 1.5; margin-top: 0.3rem;">
-              When an object covers equal displacements in equal intervals of time, it moves with constant velocity.
-            </p>
-            <div class="math-expr display"><i>x</i>(<i>t</i>) = <i>v</i> · <i>t</i> + <i>x</i><sub>0</sub></div>
-            <ul style="margin-top: 0.3rem; padding-left: 1.2rem; font-size: 0.88rem;">
-              <li><span class="math-expr"><i>x</i></span>: Position at time <i>t</i> (cm) — Dependent variable</li>
-              <li><span class="math-expr"><i>t</i></span>: Elapsed time (s) — Independent variable</li>
-              <li><span class="math-expr"><i>v</i></span>: Constant velocity (cm/s) — <strong>Slope</strong> of the graph</li>
-              <li><span class="math-expr"><i>x</i><sub>0</sub></span>: Initial position at <span class="math-expr"><i>t</i> = 0</span> (cm) — <strong>y-intercept</strong></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 style="font-size: 1rem; color: var(--ink);">Dealing with Experimental Uncertainty</h3>
-            <p style="font-size: 0.88rem; line-height: 1.5; margin-top: 0.3rem;">
-              In real physics experiments, measurements have uncertainty due to:
-            </p>
-            <ul style="padding-left: 1.2rem; font-size: 0.88rem; margin-top: 0.3rem;">
-              <li><strong>Reaction Timing Error:</strong> Delay in observing a car cross a tape mark and clicking split.</li>
-              <li><strong>Parallax Error:</strong> Viewing the car bumper and ruler from an angle.</li>
-              <li><strong>Line of Best Fit:</strong> Rather than connecting data points dot-to-dot, linear regression balances data above and below the line, canceling out random timing errors to find the true underlying velocity.</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
     <!-- Footer -->
     <footer style="margin-top: 2rem; border-top: 1px solid var(--border); padding: 1rem 0; text-align: center; font-size: 0.82rem; color: var(--muted);">

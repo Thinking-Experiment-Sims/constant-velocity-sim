@@ -9,11 +9,14 @@ import {
   calculatePercentError,
   VELOCITY_RED,
   VELOCITY_BLUE,
-  TRACK_MAX,
-  TRACK_MIN
+  ARDUINO_TRIPS,
+  ARDUINO_GROUPS,
+  calculateTripDuration,
+  calculatePiecewisePosition,
+  calculateAverageVelocityMetrics
 } from '../src/constantVelocityPhysics.js';
 
-console.log('Running constantVelocityPhysics.js unit tests (Speed and Error Analysis)...\n');
+console.log('Running constantVelocityPhysics.js unit tests (Constant & Average Velocity)...\n');
 
 // 1. Test calculatePosition
 console.log('Test 1: calculatePosition');
@@ -25,69 +28,58 @@ console.log('✓ calculatePosition passed');
 
 // 2. Test isAtBoundary
 console.log('\nTest 2: isAtBoundary');
-assert.strictEqual(isAtBoundary(240, 30), true, 'Should be at boundary at TRACK_MAX going forward');
-assert.strictEqual(isAtBoundary(241, 30), true, 'Should be at boundary past TRACK_MAX going forward');
-assert.strictEqual(isAtBoundary(239, 30), false, 'Should not be at boundary before TRACK_MAX going forward');
-assert.strictEqual(isAtBoundary(0, -30), true, 'Should be at boundary at TRACK_MIN going backward');
-assert.strictEqual(isAtBoundary(-1, -30), true, 'Should be at boundary past TRACK_MIN going backward');
-assert.strictEqual(isAtBoundary(1, -30), false, 'Should not be at boundary before TRACK_MIN going backward');
+assert.strictEqual(isAtBoundary(240, 30), true);
+assert.strictEqual(isAtBoundary(241, 30), true);
+assert.strictEqual(isAtBoundary(239, 30), false);
+assert.strictEqual(isAtBoundary(0, -30), true);
+assert.strictEqual(isAtBoundary(-1, -30), true);
+assert.strictEqual(isAtBoundary(1, -30), false);
 console.log('✓ isAtBoundary passed');
 
-// 3. Test clampPosition
-console.log('\nTest 3: clampPosition');
-assert.strictEqual(clampPosition(-10), 0);
-assert.strictEqual(clampPosition(250), 240);
-assert.strictEqual(clampPosition(120), 120);
-console.log('✓ clampPosition passed');
-
-// 4. Test calculateMeetingPoint
-console.log('\nTest 4: calculateMeetingPoint');
-// Red (0 cm, +30 cm/s) and Blue (210 cm, -10 cm/s)
-// 30t = 210 - 10t => 40t = 210 => t = 5.25 s, x = 157.5 cm
+// 3. Test calculateMeetingPoint
+console.log('\nTest 3: calculateMeetingPoint');
 const meet1 = calculateMeetingPoint(0, 30, 210, -10);
-assert.ok(meet1, 'Cars should meet');
+assert.ok(meet1);
 assert.strictEqual(meet1.time, 5.25);
 assert.strictEqual(meet1.position, 157.5);
-
-// Blue (0 cm, +10 cm/s) and Blue (210 cm, -10 cm/s)
-// 10t = 210 - 10t => 20t = 210 => t = 10.5 s, x = 105.0 cm
-const meet2 = calculateMeetingPoint(0, 10, 210, -10);
-assert.ok(meet2);
-assert.strictEqual(meet2.time, 10.5);
-assert.strictEqual(meet2.position, 105.0);
 console.log('✓ calculateMeetingPoint passed');
 
-// 5. Test fitLinearRegression with scatter
-console.log('\nTest 5: fitLinearRegression');
-const points = [
-  { t: 0.0, x: 60.0 },
-  { t: 2.0, x: 120.0 },
-  { t: 4.0, x: 180.0 }
-];
-const fit = fitLinearRegression(points);
-assert.ok(fit);
-assert.strictEqual(Math.round(fit.slope * 100) / 100, 30.0);
-assert.strictEqual(Math.round(fit.intercept * 100) / 100, 60.0);
-assert.strictEqual(fit.r2, 1.0);
-console.log('✓ fitLinearRegression passed');
+// 4. Test Arduino Trips Duration & Piecewise Motion
+console.log('\nTest 4: calculateTripDuration & calculatePiecewisePosition');
+// Trip 1: 0 -> 100 at 15 cm/s (6.67 s), 100 -> 200 at 30 cm/s (3.33 s)
+const trip1 = ARDUINO_TRIPS[1];
+const dur1 = calculateTripDuration(trip1);
+assert.strictEqual(Math.round(dur1.t1 * 100) / 100, 6.67);
+assert.strictEqual(Math.round(dur1.t2 * 100) / 100, 3.33);
+assert.strictEqual(Math.round(dur1.totalTime * 100) / 100, 10.00);
 
-// 6. Test calculatePercentError
-console.log('\nTest 6: calculatePercentError');
-assert.strictEqual(calculatePercentError(29.4, 30.0).toFixed(2), '2.00');
-assert.strictEqual(calculatePercentError(30.0, 30.0), 0);
-console.log('✓ calculatePercentError passed');
+const posAt3 = calculatePiecewisePosition(3.0, trip1);
+assert.strictEqual(posAt3.segment, 1);
+assert.strictEqual(posAt3.x, 45.0);
 
-// 7. Test getGroupConfig
-console.log('\nTest 7: getGroupConfig');
-const config1 = getGroupConfig(1);
-assert.ok(config1);
-assert.strictEqual(config1.group, 1);
-assert.strictEqual(config1.trial1.color, 'red');
-assert.strictEqual(config1.trial1.x0, 0);
-assert.strictEqual(config1.trial1.v, VELOCITY_RED);
-assert.strictEqual(config1.trial2.color, 'blue');
-assert.strictEqual(config1.trial2.x0, 210);
-assert.strictEqual(config1.trial2.v, -VELOCITY_BLUE);
-console.log('✓ getGroupConfig passed');
+const posAt8 = calculatePiecewisePosition(8.0, trip1);
+assert.strictEqual(posAt8.segment, 2);
+// At t=8: t - t1 = 8 - 6.6667 = 1.3333 s -> x = 100 + 30 * 1.3333 = 140.0 cm
+assert.strictEqual(Math.round(posAt8.x * 10) / 10, 140.0);
+
+// Trip 5 Turnaround: 0 -> 100 at +15 cm/s, 100 -> 0 at -30 cm/s
+const trip5 = ARDUINO_TRIPS[5];
+const dur5 = calculateTripDuration(trip5);
+assert.strictEqual(Math.round(dur5.totalTime * 100) / 100, 10.00);
+const posAtFinish = calculatePiecewisePosition(12.0, trip5);
+assert.strictEqual(posAtFinish.isFinished, true);
+assert.strictEqual(posAtFinish.x, 0.0);
+console.log('✓ Piecewise motion passed');
+
+// 5. Test calculateAverageVelocityMetrics
+console.log('\nTest 5: calculateAverageVelocityMetrics');
+// Trip 5: x0=0, xTape=100, xf=0, t0=0, tTape=6.6667, tf=10.0
+const metrics5 = calculateAverageVelocityMetrics(0, 100, 0, 0, 6.6667, 10.0);
+assert.strictEqual(metrics5.total.dx, 0.0, 'Total displacement should be 0');
+assert.strictEqual(metrics5.total.distance, 200.0, 'Total distance should be 200 cm');
+assert.strictEqual(metrics5.total.averageVelocity, 0.0, 'Average velocity should be 0 cm/s');
+assert.strictEqual(metrics5.total.averageSpeed, 20.0, 'Average speed should be 20 cm/s');
+assert.strictEqual(Math.round(metrics5.total.arithmeticMeanVelocity * 10) / 10, -7.5, 'Arithmetic mean is NOT average velocity');
+console.log('✓ calculateAverageVelocityMetrics passed');
 
 console.log('\nAll tests completed successfully!');

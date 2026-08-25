@@ -71,6 +71,7 @@ li {
 .shell {
   width: min(1200px, calc(100% - 1.2rem));
   margin-inline: auto;
+  padding-bottom: 2rem;
 }
 
 .hero {
@@ -194,6 +195,42 @@ select:focus-visible {
   border-radius: 10px;
   border: 1px solid #b8d1db;
   background: linear-gradient(180deg, #f8fcff, #f2f8fb);
+}
+
+/* Activity Mode Switcher Nav */
+.activity-nav {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  background: #dbeef7;
+  padding: 0.4rem;
+  border-radius: 10px;
+  border: 1px solid #b8dbe5;
+}
+
+.activity-tab-btn {
+  flex: 1;
+  text-align: center;
+  background: transparent;
+  color: var(--accent-strong);
+  border: none;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.activity-tab-btn.active {
+  background: #ffffff;
+  color: var(--accent-strong);
+  box-shadow: 0 3px 8px rgba(12, 54, 68, 0.15);
+  border: 1px solid #a9c4cf;
+}
+
+.activity-tab-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .tab-nav {
@@ -427,6 +464,69 @@ tr:nth-child(even) td {
   background: #fff4e6;
   color: #d9480f;
   border: 1px solid #ffd8a8;
+}
+
+/* Metric summary card for Average Velocity */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+}
+
+.metric-card {
+  background: #f8fcfe;
+  border: 1px solid #c8dbe3;
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  text-align: center;
+}
+
+.metric-card.highlight {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.metric-card.accent {
+  background: #fff8eb;
+  border-color: #fcd34d;
+}
+
+.metric-card .title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.metric-card .val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ink);
+  font-family: monospace;
+}
+
+.metric-card .sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.dir-toggle-btn {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+  background: #eef8fb;
+  color: var(--accent-strong);
+  border: 1px solid #b8d1db;
+  border-radius: 4px;
+}
+
+.dir-toggle-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent-strong);
 }
 
 @media (max-width: 768px) {
