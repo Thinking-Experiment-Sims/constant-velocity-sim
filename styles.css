@@ -105,11 +105,14 @@ li {
 }
 
 label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.36rem;
+  display: block;
   font-size: 0.91rem;
   color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+label i, label sub, label sup, label span {
+  display: inline;
 }
 
 input,
@@ -195,6 +198,15 @@ select:focus-visible {
   border-radius: 10px;
   border: 1px solid #b8d1db;
   background: linear-gradient(180deg, #f8fcff, #f2f8fb);
+  cursor: default;
+}
+
+.sim-canvas.interactive-drag {
+  cursor: grab;
+}
+
+.sim-canvas.interactive-drag:active {
+  cursor: grabbing;
 }
 
 /* Activity Mode Switcher Nav */
@@ -249,7 +261,7 @@ select:focus-visible {
 
 .sub-tab-btn {
   flex: 1;
-  min-width: 160px;
+  min-width: 150px;
   text-align: center;
   background: transparent;
   color: var(--accent-strong);
@@ -378,7 +390,7 @@ tr:nth-child(even) td {
   background: #fcfdfe;
 }
 
-.speed-btn, .avg-speed-btn, .walker-speed-btn {
+.speed-btn, .avg-speed-btn, .walker-speed-btn, .custom-speed-btn {
   cursor: pointer;
   border: none;
   background: transparent;
@@ -389,12 +401,12 @@ tr:nth-child(even) td {
   transition: all 0.1s ease;
 }
 
-.speed-btn.active, .avg-speed-btn.active, .walker-speed-btn.active {
+.speed-btn.active, .avg-speed-btn.active, .walker-speed-btn.active, .custom-speed-btn.active {
   background: var(--accent) !important;
   color: white !important;
 }
 
-.speed-btn:hover:not(.active), .avg-speed-btn:hover:not(.active), .walker-speed-btn:hover:not(.active) {
+.speed-btn:hover:not(.active), .avg-speed-btn:hover:not(.active), .walker-speed-btn:hover:not(.active), .custom-speed-btn:hover:not(.active) {
   background: #dee2e6;
 }
 
@@ -427,7 +439,7 @@ tr:nth-child(even) td {
 /* Math expression styling */
 .math-expr {
   font-family: "IBM Plex Serif", "Times New Roman", Cambria, serif;
-  font-size: 1.05em;
+  font-size: 1.02em;
   color: #0b5f77;
   background: #eef8fb;
   padding: 0.1rem 0.35rem;
@@ -435,6 +447,7 @@ tr:nth-child(even) td {
   border: 1px solid #d2e8ef;
   display: inline-block;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .math-expr.display {

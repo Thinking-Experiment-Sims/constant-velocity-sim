@@ -44,7 +44,7 @@
       <div class="panel" style="margin-top: 0.8rem; padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: #a9c4cf;">
         <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <label for="groupSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Group:</label>
+            <span style="font-weight: 700; color: var(--ink);">Group:</span>
             <select id="groupSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
               <option value="1" selected>Group 1</option>
               <option value="2">Group 2</option>
@@ -60,7 +60,7 @@
           
           <!-- Data Collection Mode Selector -->
           <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <label for="timingModeSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
+            <span style="font-weight: 700; color: var(--ink);">Timing Mode:</span>
             <select id="timingModeSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
               <option value="auto" selected>🤖 Auto (Photogate Sensors - Exact)</option>
               <option value="manual">⏱️ Manual (Stopwatch Split - With Uncertainty)</option>
@@ -108,7 +108,7 @@
           </div>
         </div>
 
-        <!-- Sandbox configuration block (Full Bidirectional Controls) -->
+        <!-- Sandbox configuration block -->
         <div id="sandboxControls" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 0.8rem; margin-bottom: 0.8rem;">
           <h4 style="margin-bottom: 0.5rem; color: var(--ink);">Sandbox Custom Bidirectional Controls</h4>
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
@@ -236,10 +236,8 @@
           </button>
         </div>
         
-        <!-- Graph Canvas -->
         <canvas id="graphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
 
-        <!-- Fitted Line Equations Display -->
         <div id="equationDisplay" style="margin-top: 0.6rem; padding: 0.8rem; background: #f8f9fa; border: 1px solid #c8dbe3; border-radius: 8px; display: none; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
           <div id="redEquationText" style="color: #c92a2a; font-family: monospace; line-height: 1.4;">Red Car A: --</div>
           <div id="blueEquationText" style="color: #12518c; font-family: monospace; line-height: 1.4;">Blue Car B: --</div>
@@ -252,14 +250,12 @@
           <span>🏁</span> Challenge: Predict the Meeting Point
         </h2>
         
-        <!-- Locked State Prompt -->
         <div id="challengeLockScreen" class="alert-box warning" style="padding: 1.2rem; border-color: #ffd8a8; background: #fff9db; color: #d9480f; text-align: center; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 0.4rem;">
           <span style="font-size: 1.5rem;">🔒</span>
           <strong style="font-size: 1rem;">Verify both Car A and Car B equations to unlock this challenge.</strong>
           <span style="font-size: 0.9rem;">Run both trials and click <strong>Fit Line & Extract Models</strong> to calculate their equations of motion.</span>
         </div>
 
-        <!-- Equation Verification Panel -->
         <div id="verificationContainer" style="display: none;">
           <p style="margin-bottom: 0.8rem; font-size: 0.92rem; color: var(--muted);">
             Write your derived equations of motion in the boxes below using your experimental slopes and intercepts.
@@ -287,7 +283,6 @@
             </div>
           </div>
 
-          <!-- Inline Verification Feedback Area -->
           <div id="verificationFeedback" style="display: none; padding: 0.6rem 0.8rem; border-radius: 8px; font-size: 0.88rem; margin-bottom: 0.8rem;"></div>
 
           <div style="display: flex; justify-content: flex-end;">
@@ -295,7 +290,6 @@
           </div>
         </div>
 
-        <!-- Solve & Prediction Panel -->
         <div id="predictionSolveContainer" style="display: none; border-top: 1px dashed var(--border); padding-top: 0.8rem; margin-top: 0.8rem;">
           <div class="alert-box info" style="margin-bottom: 0.8rem; background: #ebfbee; border-color: #c3fae8; color: #087f5b;">
             ✅ <strong>Equations Verified!</strong> Set the position equations equal (<span class="math-expr"><i>x</i><sub>Red</sub> = <i>x</i><sub>Blue</sub></span>) and algebraically solve for the meeting time <span class="math-expr"><i>t</i></span> and meeting position <span class="math-expr"><i>x</i></span>.
@@ -319,7 +313,7 @@
         </div>
       </section>
 
-      <!-- Guided Inquiry Accordions (Constant Velocity) -->
+      <!-- Guided Inquiry Accordions -->
       <section class="panel full" style="margin-top: 0.8rem;">
         <div class="tab-nav" role="tablist">
           <button class="tab-btn active" role="tab" aria-selected="true" id="tabGuidedBtn">Guided Inquiry Questions (CER)</button>
@@ -367,11 +361,10 @@
     <!-- ACTIVITY 2: AVERAGE VELOCITY (ARDUINO CARS LAB)                           -->
     <!-- ========================================================================= -->
     <div id="activity2Container" style="display: none;">
-      <!-- Group & Trip Select Ribbon -->
       <div class="panel" style="margin-top: 0.8rem; padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: #a9c4cf;">
         <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <label for="avgGroupSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Group:</label>
+            <span style="font-weight: 700; color: var(--ink);">Group:</span>
             <select id="avgGroupSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
               <option value="A" selected>Group A</option>
               <option value="B">Group B</option>
@@ -384,16 +377,15 @@
           </div>
 
           <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <label for="avgTrialSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Trial:</label>
+            <span style="font-weight: 700; color: var(--ink);">Trial:</span>
             <select id="avgTrialSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
               <option value="trial1" selected>Trial 1</option>
               <option value="trial2">Trial 2</option>
             </select>
           </div>
 
-          <!-- Trip Select (Shown when Custom is selected) -->
           <div id="customTripWrapper" style="display: none; align-items: center; gap: 0.4rem;">
-            <label for="avgTripSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Trip:</label>
+            <span style="font-weight: 700; color: var(--ink);">Trip:</span>
             <select id="avgTripSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
               <option value="1">Trip 1 (Slow Fwd, Fast Fwd)</option>
               <option value="2">Trip 2 (Fast Back, Slow Back)</option>
@@ -408,9 +400,8 @@
 
           <div style="height: 24px; width: 2px; background: #c8dbe3;" class="divider-line"></div>
 
-          <!-- Timing Mode Selector -->
           <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <label for="avgTimingModeSelect" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
+            <span style="font-weight: 700; color: var(--ink);">Timing Mode:</span>
             <select id="avgTimingModeSelect" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
               <option value="auto" selected>🤖 Auto (Sensor Ticks - Exact)</option>
               <option value="manual">⏱️ Manual (Stopwatch Split - With Uncertainty)</option>
@@ -447,7 +438,6 @@
           </div>
         </div>
 
-        <!-- Manual Split Timing Action Banner for Avg Mode -->
         <div id="avgManualSplitBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
           <div>
             <strong style="color: #d9480f;">⏱️ Manual Stopwatch Timing Active:</strong>
@@ -456,10 +446,8 @@
           <button id="btnAvgManualSplit" class="manual-split-btn" disabled>⏱️ Record Split (Spacebar)</button>
         </div>
 
-        <!-- Arduino Simulation Canvas -->
         <canvas id="avgSimCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Visual view of Arduino Car multi-segment track"></canvas>
 
-        <!-- Status & Stopwatch -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; flex-wrap: wrap; gap: 0.8rem;">
           <div id="avgStatusIndicator" class="status-badge" style="background: #eef8fb; border: 1px solid #b8d1db; color: var(--accent-strong); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
             Ready — click Run Arduino Car Trip
@@ -471,13 +459,12 @@
         </div>
       </section>
 
-      <!-- Average Velocity Data & Calculations Section -->
+      <!-- Calculations Section -->
       <section class="panel full" style="margin-top: 0.8rem;">
         <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
           <span>📊</span> Data Collection & Kinematic Calculations
         </h2>
 
-        <!-- Raw Data Points Table -->
         <div class="table-wrap" style="border-radius: 8px; margin-bottom: 1rem;">
           <table>
             <thead>
@@ -507,19 +494,18 @@
           </table>
         </div>
 
-        <!-- Calculated Kinematics Metrics Summary Cards -->
         <h3 style="font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem;">Trip Kinematic Calculations</h3>
         <div class="metric-grid">
           <div class="metric-card">
-            <div class="title">Segment 1 Velocity (<i>v</i>₁)</div>
+            <div class="title">Segment 1 Velocity (<span class="math-expr"><i>v</i>₁</span>)</div>
             <div class="val" id="metricV1" style="color: #0f7e9b;">—</div>
-            <div class="sub" id="metricV1Sub">Δ<i>x</i>₁ / Δ<i>t</i>₁</div>
+            <div class="sub">Δ<i>x</i>₁ / Δ<i>t</i>₁</div>
           </div>
 
           <div class="metric-card">
-            <div class="title">Segment 2 Velocity (<i>v</i>₂)</div>
+            <div class="title">Segment 2 Velocity (<span class="math-expr"><i>v</i>₂</span>)</div>
             <div class="val" id="metricV2" style="color: #0f7e9b;">—</div>
-            <div class="sub" id="metricV2Sub">Δ<i>x</i>₂ / Δ<i>t</i>₂</div>
+            <div class="sub">Δ<i>x</i>₂ / Δ<i>t</i>₂</div>
           </div>
 
           <div class="metric-card accent">
@@ -535,7 +521,7 @@
           </div>
 
           <div class="metric-card highlight">
-            <div class="title">Average Velocity (<i>v</i><sub>avg</sub>)</div>
+            <div class="title">Average Velocity (<span class="math-expr"><i>v</i><sub>avg</sub></span>)</div>
             <div class="val" id="metricVavg" style="color: #1a7f4e;">—</div>
             <div class="sub">Total Δ<i>x</i> / Total Δ<i>t</i></div>
           </div>
@@ -547,14 +533,12 @@
           </div>
         </div>
 
-        <!-- Misconception Alert Callout -->
         <div id="misconceptionCallout" class="alert-box warning" style="display: none; margin-top: 1rem;">
           <strong>💡 Physics Insight: Average Velocity vs. Arithmetic Mean</strong><br>
           <span id="misconceptionText">Notice that average velocity is NOT the arithmetic average (<i>v</i>₁ + <i>v</i>₂) / 2 because the car spent unequal amounts of time in each segment!</span>
         </div>
       </section>
 
-      <!-- Average Velocity Graph Card -->
       <section class="panel full" style="margin-top: 0.8rem;">
         <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
           <span>📈</span> Multi-Segment Position vs. Time Graph
@@ -562,7 +546,6 @@
         <canvas id="avgGraphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
       </section>
 
-      <!-- Guided Discovery (Average Velocity CER) -->
       <section class="panel full" style="margin-top: 0.8rem;">
         <h2 style="font-size: 1.15rem; color: var(--ink); margin-bottom: 0.6rem;">Average Velocity Guided Inquiry (CER)</h2>
 
@@ -612,6 +595,9 @@
         <button class="sub-tab-btn" id="btnSubChallenge" data-sub="challenge">
           🎯 Part 5: Relay Speed Challenge
         </button>
+        <button class="sub-tab-btn" id="btnSubCustomSandbox" data-sub="custom">
+          🛠️ Custom Multi-Segment Sandbox
+        </button>
       </div>
 
       <!-- ==================== SUB-TAB 1: ROUND TRIP ==================== -->
@@ -619,7 +605,7 @@
         <div class="panel" style="padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: #a9c4cf;">
           <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 0.4rem;">
-              <label for="rtTurnDist" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Turnaround Point (<i>X</i><sub>turn</sub>):</label>
+              <span style="font-weight: 700; color: var(--ink);">Turnaround Point (<span class="math-expr"><i>X</i><sub>turn</sub></span>):</span>
               <input type="number" id="rtTurnDist" value="10" min="4" max="20" step="1" style="width: 70px; padding: 0.35rem 0.6rem;">
               <span style="font-weight: 600; color: var(--ink);">meters</span>
             </div>
@@ -627,7 +613,7 @@
             <div style="height: 24px; width: 2px; background: #c8dbe3;" class="divider-line"></div>
 
             <div style="display: flex; align-items: center; gap: 0.4rem;">
-              <label for="rtTimingMode" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
+              <span style="font-weight: 700; color: var(--ink);">Timing Mode:</span>
               <select id="rtTimingMode" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
                 <option value="auto" selected>🤖 Auto (Sensor Clock - Exact)</option>
                 <option value="manual">⏱️ Manual Dual Timers (Student 1 & 2 Stopwatches)</option>
@@ -636,7 +622,7 @@
           </div>
 
           <div style="font-size: 0.88rem; color: #0b5f77; font-weight: 600; background: #eef8fb; padding: 0.4rem 0.8rem; border-radius: 6px;">
-            Student 3 moves quickly to turnaround (<span id="rtTurnDisplay">10</span> m), then returns slowly to start (0 m).
+            💡 <strong>Interactive:</strong> Drag the cone on the track or use the input above to set the turnaround distance!
           </div>
         </div>
 
@@ -664,7 +650,6 @@
             </div>
           </div>
 
-          <!-- Manual Timing Actions for Round Trip -->
           <div id="rtManualActionsBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
             <div>
               <strong style="color: #d9480f;">⏱️ Student Timers Active:</strong>
@@ -676,10 +661,8 @@
             </div>
           </div>
 
-          <!-- Walker Canvas -->
-          <canvas id="walkerCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Walking track simulation in meters"></canvas>
+          <canvas id="walkerCanvas" class="sim-canvas interactive-drag" width="980" height="260" role="img" aria-label="Walking track simulation in meters with draggable turnaround cone"></canvas>
 
-          <!-- Dual Timers Display -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; flex-wrap: wrap; gap: 0.8rem;">
             <div id="rtStatusIndicator" class="status-badge" style="background: #eef8fb; border: 1px solid #b8d1db; color: var(--accent-strong); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
               Ready — click Start Round Trip
@@ -698,7 +681,7 @@
           </div>
         </section>
 
-        <!-- Round Trip Data & Analysis Section -->
+        <!-- Round Trip Data & Analysis -->
         <section class="panel full" style="margin-top: 0.8rem;">
           <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
             <span>📋</span> Part 2: Round Trip Data & Calculations
@@ -716,19 +699,19 @@
               </thead>
               <tbody>
                 <tr>
-                  <td><strong>Start (<i>x</i><sub>0</sub>)</strong></td>
+                  <td><strong>Start (<span class="math-expr"><i>x</i><sub>0</sub></span>)</strong></td>
                   <td>0.0 m</td>
                   <td>0.00 s</td>
                   <td>Both Timers Start</td>
                 </tr>
                 <tr>
-                  <td><strong>Turnaround (<i>x</i><sub>turn</sub>)</strong></td>
+                  <td><strong>Turnaround (<span class="math-expr"><i>x</i><sub>turn</sub></span>)</strong></td>
                   <td id="rtTableXTurn">10.0 m</td>
                   <td id="rtTableTTurn">—</td>
                   <td>Student 2 (Timer 2)</td>
                 </tr>
                 <tr>
-                  <td><strong>Return to Start (<i>x</i><sub>f</sub>)</strong></td>
+                  <td><strong>Return to Start (<span class="math-expr"><i>x</i><sub>f</sub></span>)</strong></td>
                   <td>0.0 m</td>
                   <td id="rtTableTFinal">—</td>
                   <td>Student 1 (Timer 1)</td>
@@ -740,13 +723,13 @@
           <h3 style="font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem;">Kinematic Quantities (Questions 4, 5, 6)</h3>
           <div class="metric-grid">
             <div class="metric-card">
-              <div class="title">Segment 1 Velocity (<i>v</i>₁)</div>
+              <div class="title">Segment 1 Velocity (<span class="math-expr"><i>v</i>₁</span>)</div>
               <div class="val" id="rtMetricV1" style="color: #0f7e9b;">—</div>
               <div class="sub">Outbound (+<i>x</i> direction)</div>
             </div>
 
             <div class="metric-card">
-              <div class="title">Segment 2 Velocity (<i>v</i>₂)</div>
+              <div class="title">Segment 2 Velocity (<span class="math-expr"><i>v</i>₂</span>)</div>
               <div class="val" id="rtMetricV2" style="color: #0f7e9b;">—</div>
               <div class="sub">Inbound (−<i>x</i> direction)</div>
             </div>
@@ -754,17 +737,17 @@
             <div class="metric-card accent">
               <div class="title">Total Displacement (Δ<i>x</i>)</div>
               <div class="val" id="rtMetricDx" style="color: #d67b19;">—</div>
-              <div class="sub"><i>x</i><sub>f</sub> − <i>x</i><sub>0</sub> = 0 m</div>
+              <div class="sub"><span class="math-expr"><i>x</i><sub>f</sub> − <i>x</i><sub>0</sub> = 0 m</span></div>
             </div>
 
             <div class="metric-card accent">
               <div class="title">Total Distance (<i>d</i>)</div>
               <div class="val" id="rtMetricDist" style="color: #d67b19;">—</div>
-              <div class="sub">2 × <i>x</i><sub>turn</sub></div>
+              <div class="sub"><span class="math-expr">2 × <i>x</i><sub>turn</sub></span></div>
             </div>
 
             <div class="metric-card highlight">
-              <div class="title">Average Velocity (<i>v</i><sub>avg</sub>)</div>
+              <div class="title">Average Velocity (<span class="math-expr"><i>v</i><sub>avg</sub></span>)</div>
               <div class="val" id="rtMetricVavg" style="color: #1a7f4e;">—</div>
               <div class="sub">Total Δ<i>x</i> / Total Δ<i>t</i> = 0 m/s</div>
             </div>
@@ -790,7 +773,7 @@
           <canvas id="rtGraphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
         </section>
 
-        <!-- Round Trip Guided Inquiry (PDF Questions 4, 5, 6) -->
+        <!-- Round Trip Guided Inquiry -->
         <section class="panel full" style="margin-top: 0.8rem;">
           <h2 style="font-size: 1.15rem; color: var(--ink); margin-bottom: 0.6rem;">Part 2: Round Trip Analysis Questions</h2>
           <details open>
@@ -822,7 +805,7 @@
             🏃 <strong>Relay Setup:</strong> Student 1 (0 → 8 m, fast) · Student 2 (8 → 12 m, medium) · Student 3 (12 → 16 m, slow). Total distance = 16 m.
           </div>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
-            <label for="relayTimingMode" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
+            <span style="font-weight: 700; color: var(--ink);">Timing Mode:</span>
             <select id="relayTimingMode" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
               <option value="auto" selected>🤖 Auto (Sensor Ticks - Exact)</option>
               <option value="manual">⏱️ Manual Cumulative Timers (Stopwatches 1, 2, 3)</option>
@@ -830,7 +813,6 @@
           </div>
         </div>
 
-        <!-- Relay Simulation Card -->
         <section class="panel full" style="margin-top: 0.8rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.6rem;">
             <h2 style="font-size: 1.2rem; color: var(--ink); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
@@ -854,7 +836,6 @@
             </div>
           </div>
 
-          <!-- Manual Relay Action Banner -->
           <div id="relayManualBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
             <div>
               <strong style="color: #d9480f;">⏱️ 3 Cumulative Timers:</strong>
@@ -867,10 +848,8 @@
             </div>
           </div>
 
-          <!-- Relay Canvas -->
           <canvas id="relayCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Relay race simulation track in meters"></canvas>
 
-          <!-- 3 Cumulative Timers Display -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; flex-wrap: wrap; gap: 0.8rem;">
             <div id="relayStatusIndicator" class="status-badge" style="background: #eef8fb; border: 1px solid #b8d1db; color: var(--accent-strong); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
               Ready — click Start Relay Race
@@ -893,7 +872,7 @@
           </div>
         </section>
 
-        <!-- Relay Data Tables & Calculations Section -->
+        <!-- Relay Data & Calculations -->
         <section class="panel full" style="margin-top: 0.8rem;">
           <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
             <span>📋</span> Part 4: Relay Data & Segment Calculations
@@ -947,13 +926,13 @@
             <div class="metric-card accent">
               <div class="title">Total Relay Time</div>
               <div class="val" id="relayTotalTimeMetric" style="color: #d67b19;">—</div>
-              <div class="sub">Timer 3 Reading (<i>t</i>₃)</div>
+              <div class="sub">Timer 3 Reading (<span class="math-expr"><i>t</i>₃</span>)</div>
             </div>
 
             <div class="metric-card highlight">
               <div class="title">Team Average Velocity</div>
               <div class="val" id="relayVavgMetric" style="color: #1a7f4e;">—</div>
-              <div class="sub">16 m / <i>t</i>₃</div>
+              <div class="sub"><span class="math-expr">16 m / <i>t</i>₃</span></div>
             </div>
 
             <div class="metric-card highlight">
@@ -964,7 +943,7 @@
           </div>
         </section>
 
-        <!-- Relay Graph Card -->
+        <!-- Relay Graph -->
         <section class="panel full" style="margin-top: 0.8rem;">
           <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
             <span>📈</span> Question 8: Position vs. Time Graph — Complete Relay
@@ -972,7 +951,7 @@
           <canvas id="relayGraphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
         </section>
 
-        <!-- Relay CER Accordions -->
+        <!-- Relay Accordions -->
         <section class="panel full" style="margin-top: 0.8rem;">
           <h2 style="font-size: 1.15rem; color: var(--ink); margin-bottom: 0.6rem;">Part 4: Relay Analysis Questions</h2>
           <details open>
@@ -1005,20 +984,20 @@
 
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
             <div style="background: #f8fcfe; padding: 0.8rem; border-radius: 8px; border: 1px solid #c8dbe3;">
-              <label style="font-weight: bold; color: var(--ink);">Student 1 Velocity (<i>v</i>₁):</label>
-              <input type="number" id="challV1" value="4.0" step="0.1" style="width: 100%; margin-top: 0.3rem;">
+              <span style="font-weight: bold; color: var(--ink); display: block; margin-bottom: 0.3rem;">Student 1 Velocity (<span class="math-expr"><i>v</i>₁</span>):</span>
+              <input type="number" id="challV1" value="4.0" step="0.1" style="width: 100%;">
               <span class="hint">Leg 1: 0 to 8 m (8m)</span>
             </div>
 
             <div style="background: #f8fcfe; padding: 0.8rem; border-radius: 8px; border: 1px solid #c8dbe3;">
-              <label style="font-weight: bold; color: var(--ink);">Student 2 Velocity (<i>v</i>₂):</label>
-              <input type="number" id="challV2" value="2.0" step="0.1" style="width: 100%; margin-top: 0.3rem;">
+              <span style="font-weight: bold; color: var(--ink); display: block; margin-bottom: 0.3rem;">Student 2 Velocity (<span class="math-expr"><i>v</i>₂</span>):</span>
+              <input type="number" id="challV2" value="2.0" step="0.1" style="width: 100%;">
               <span class="hint">Leg 2: 8 to 12 m (4m)</span>
             </div>
 
             <div style="background: #f8fcfe; padding: 0.8rem; border-radius: 8px; border: 1px solid #c8dbe3;">
-              <label style="font-weight: bold; color: var(--ink);">Target Team <i>v</i><sub>avg</sub>:</label>
-              <input type="number" id="challVTarget" value="6.0" step="0.1" style="width: 100%; margin-top: 0.3rem;">
+              <span style="font-weight: bold; color: var(--ink); display: block; margin-bottom: 0.3rem;">Target Team Velocity (<span class="math-expr"><i>v</i><sub>avg</sub></span>):</span>
+              <input type="number" id="challVTarget" value="6.0" step="0.1" style="width: 100%;">
               <span class="hint">Total distance = 16 m</span>
             </div>
           </div>
@@ -1027,9 +1006,9 @@
           <div style="background: #fff8eb; padding: 1rem; border-radius: 8px; border: 1px solid #fcd34d; margin-bottom: 1rem;">
             <h3 style="font-size: 1rem; color: #b1620e; margin-bottom: 0.5rem;">Your Derived Calculation for Student 3:</h3>
             <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-              <label style="flex-direction: row; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--ink);">
-                Required Speed for Student 3 (<i>v</i>₃):
-              </label>
+              <span style="font-weight: 700; color: var(--ink);">
+                Required Speed for Student 3 (<span class="math-expr"><i>v</i>₃</span>):
+              </span>
               <input type="number" id="challV3Input" placeholder="e.g. 10.0" step="0.1" style="width: 120px; padding: 0.4rem 0.6rem;">
               <span style="font-weight: 600; color: var(--ink);">m/s</span>
               <button id="btnTestChallenge" class="primary" style="background: linear-gradient(160deg, #d67b19, #b1620e); border-color: #9c5307;">Test Calculation & Simulate Relay</button>
@@ -1038,11 +1017,126 @@
             <div id="challFeedback" style="display: none; margin-top: 0.8rem; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.9rem;"></div>
           </div>
 
-          <!-- Challenge Simulation Canvas -->
           <canvas id="challCanvas" class="sim-canvas" width="980" height="220" role="img" aria-label="Challenge simulation track"></canvas>
-
           <div id="challOutcomeBox" class="alert-box" style="display: none; margin-top: 0.8rem;"></div>
         </section>
+      </div>
+
+      <!-- ==================== SUB-TAB 4: CUSTOM SANDBOX ==================== -->
+      <div id="walkerCustomSection" style="display: none;">
+        <div class="panel" style="padding: 1rem; border-color: #a9c4cf;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.8rem;">
+            <h2 style="font-size: 1.2rem; color: var(--ink); margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+              <span>🛠️</span> Custom Multi-Segment Walker Sandbox
+            </h2>
+
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+              <button id="btnRunCustom" class="primary" style="background: linear-gradient(160deg, #0f7e9b, #095f76); border-color: #074758;">▶ Run Custom Walk</button>
+              <button id="btnResetCustom" class="ghost" style="background: #f1f3f5; color: #495057; border-color: #ced4da;">↺ Reset Sandbox</button>
+            </div>
+          </div>
+
+          <!-- Configuration Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem; margin-bottom: 1rem;">
+            <!-- Start Cone X0 -->
+            <div style="background: #eef8fb; border: 1px solid #c8dbe3; padding: 0.6rem 0.8rem; border-radius: 8px;">
+              <span style="font-weight: bold; color: #0b5f77;">Start Location (<span class="math-expr"><i>x</i><sub>0</sub></span>):</span>
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.3rem;">
+                <input type="range" id="customX0Range" min="0" max="20" step="1" value="0" style="flex: 1;">
+                <span id="customX0Val" style="font-weight: 700; width: 40px; text-align: right;">0 m</span>
+              </div>
+            </div>
+
+            <!-- Turnaround Cone Xturn -->
+            <div style="background: #fff8eb; border: 1px solid #fcd34d; padding: 0.6rem 0.8rem; border-radius: 8px;">
+              <span style="font-weight: bold; color: #d67b19;">Turnaround Cone (<span class="math-expr"><i>x</i><sub>turn</sub></span>):</span>
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.3rem;">
+                <input type="range" id="customXTurnRange" min="0" max="20" step="1" value="12" style="flex: 1;">
+                <span id="customXTurnVal" style="font-weight: 700; width: 40px; text-align: right;">12 m</span>
+              </div>
+            </div>
+
+            <!-- Final Destination Xf -->
+            <div style="background: #fff5f5; border: 1px solid #ffc9c9; padding: 0.6rem 0.8rem; border-radius: 8px;">
+              <span style="font-weight: bold; color: #c92a2a;">Final Destination (<span class="math-expr"><i>x</i><sub>f</sub></span>):</span>
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.3rem;">
+                <input type="range" id="customXfRange" min="0" max="20" step="1" value="4" style="flex: 1;">
+                <span id="customXfVal" style="font-weight: 700; width: 40px; text-align: right;">4 m</span>
+              </div>
+            </div>
+
+            <!-- Segment 1 Velocity -->
+            <div style="background: #f8fcfe; border: 1px solid #c8dbe3; padding: 0.6rem 0.8rem; border-radius: 8px;">
+              <span style="font-weight: bold; color: #0b5f77;">Leg 1 Speed (<span class="math-expr"><i>v</i>₁</span>):</span>
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.3rem;">
+                <input type="range" id="customV1Range" min="1" max="8" step="0.5" value="4" style="flex: 1;">
+                <span id="customV1Val" style="font-weight: 700; width: 45px; text-align: right;">4 m/s</span>
+              </div>
+            </div>
+
+            <!-- Segment 2 Velocity -->
+            <div style="background: #f8fcfe; border: 1px solid #c8dbe3; padding: 0.6rem 0.8rem; border-radius: 8px;">
+              <span style="font-weight: bold; color: #0b5f77;">Leg 2 Speed (<span class="math-expr"><i>v</i>₂</span>):</span>
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-top: 0.3rem;">
+                <input type="range" id="customV2Range" min="1" max="8" step="0.5" value="2" style="flex: 1;">
+                <span id="customV2Val" style="font-weight: 700; width: 45px; text-align: right;">2 m/s</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="font-size: 0.88rem; color: #0b5f77; font-weight: 600; background: #eef8fb; padding: 0.4rem 0.8rem; border-radius: 6px; margin-bottom: 0.6rem;">
+            💡 <strong>Interactive Track:</strong> Click and drag the Cones directly on the canvas below to re-position Start, Turnaround, and Destination!
+          </div>
+
+          <!-- Sandbox Track Canvas -->
+          <canvas id="customCanvas" class="sim-canvas interactive-drag" width="980" height="260" role="img" aria-label="Custom walker sandbox track"></canvas>
+
+          <!-- Custom Calculations Grid -->
+          <h3 style="font-size: 1rem; color: var(--ink); margin-top: 0.8rem; margin-bottom: 0.4rem;">Sandbox Kinematics Summary</h3>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="title">Leg 1 Velocity (<span class="math-expr"><i>v</i>₁</span>)</div>
+              <div class="val" id="customMetricV1" style="color: #0f7e9b;">—</div>
+              <div class="sub" id="customMetricV1Sub">Δ<i>x</i>₁ / Δ<i>t</i>₁</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="title">Leg 2 Velocity (<span class="math-expr"><i>v</i>₂</span>)</div>
+              <div class="val" id="customMetricV2" style="color: #0f7e9b;">—</div>
+              <div class="sub" id="customMetricV2Sub">Δ<i>x</i>₂ / Δ<i>t</i>₂</div>
+            </div>
+
+            <div class="metric-card accent">
+              <div class="title">Total Displacement (Δ<i>x</i>)</div>
+              <div class="val" id="customMetricDx" style="color: #d67b19;">—</div>
+              <div class="sub"><span class="math-expr"><i>x</i><sub>f</sub> − <i>x</i><sub>0</sub></span></div>
+            </div>
+
+            <div class="metric-card accent">
+              <div class="title">Total Distance (<i>d</i>)</div>
+              <div class="val" id="customMetricDist" style="color: #d67b19;">—</div>
+              <div class="sub"><span class="math-expr">|Δ<i>x</i>₁| + |Δ<i>x</i>₂|</span></div>
+            </div>
+
+            <div class="metric-card highlight">
+              <div class="title">Average Velocity (<span class="math-expr"><i>v</i><sub>avg</sub></span>)</div>
+              <div class="val" id="customMetricVavg" style="color: #1a7f4e;">—</div>
+              <div class="sub">Total Δ<i>x</i> / Total Δ<i>t</i></div>
+            </div>
+
+            <div class="metric-card highlight">
+              <div class="title">Average Speed</div>
+              <div class="val" id="customMetricSpeedAvg" style="color: #1a7f4e;">—</div>
+              <div class="sub">Total Distance / Total Δ<i>t</i></div>
+            </div>
+          </div>
+
+          <!-- Custom Position vs Time Graph -->
+          <div style="margin-top: 1rem;">
+            <h3 style="font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem;">Sandbox Position vs. Time Graph</h3>
+            <canvas id="customGraphCanvas" class="sim-canvas" width="980" height="340" style="aspect-ratio: 980/340; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1052,7 +1146,6 @@
     </footer>
   </div>
 
-  <!-- Simulation Application entry -->
   <script type="module" src="src/constantVelocityApp.js"></script>
 </body>
 </html>

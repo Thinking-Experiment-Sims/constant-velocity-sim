@@ -99,7 +99,7 @@ let state = {
   },
 
   // Activity 3: Walker & Relay Activities State
-  walkerSubMode: 'roundtrip', // 'roundtrip' | 'relay' | 'challenge'
+  walkerSubMode: 'roundtrip', // 'roundtrip' | 'relay' | 'challenge' | 'custom'
   
   // Part 1 & 2: Round Trip
   rtTurnDist: 10.0,
@@ -108,6 +108,7 @@ let state = {
   rtElapsedTime: 0.0,
   rtLastTimestamp: 0.0,
   rtSpeedMultiplier: 1.0,
+  rtDraggingCone: false,
   rtWalker: {
     x: 0.0,
     v: 4.0,
@@ -157,6 +158,24 @@ let state = {
     activeStudent: 1,
     isFinished: false,
     stepPhase: 0.0
+  },
+
+  // Sub-Tab 4: Custom Sandbox
+  customX0: 0.0,
+  customXTurn: 12.0,
+  customXf: 4.0,
+  customV1: 4.0,
+  customV2: 2.0,
+  customDraggingMarker: null, // 'x0' | 'xturn' | 'xf'
+  customIsRunning: false,
+  customElapsedTime: 0.0,
+  customLastTimestamp: 0.0,
+  customWalker: {
+    x: 0.0,
+    v: 4.0,
+    segment: 1,
+    isFinished: false,
+    stepPhase: 0.0
   }
 };
 
@@ -185,6 +204,11 @@ const relayGraphCtx = relayGraphCanvas.getContext('2d');
 
 const challCanvas = document.getElementById('challCanvas');
 const challCtx = challCanvas.getContext('2d');
+
+const customCanvas = document.getElementById('customCanvas');
+const customCtx = customCanvas.getContext('2d');
+const customGraphCanvas = document.getElementById('customGraphCanvas');
+const customGraphCtx = customGraphCanvas.getContext('2d');
 
 const SIM_WIDTH = simCanvas.width;
 const SIM_HEIGHT = simCanvas.height;
@@ -306,9 +330,11 @@ const misconceptionText = document.getElementById('misconceptionText');
 const btnSubRoundTrip = document.getElementById('btnSubRoundTrip');
 const btnSubRelay = document.getElementById('btnSubRelay');
 const btnSubChallenge = document.getElementById('btnSubChallenge');
+const btnSubCustomSandbox = document.getElementById('btnSubCustomSandbox');
 const walkerRoundTripSection = document.getElementById('walkerRoundTripSection');
 const walkerRelaySection = document.getElementById('walkerRelaySection');
 const walkerChallengeSection = document.getElementById('walkerChallengeSection');
+const walkerCustomSection = document.getElementById('walkerCustomSection');
 
 const rtTurnDistInput = document.getElementById('rtTurnDist');
 const rtTurnDisplay = document.getElementById('rtTurnDisplay');
@@ -366,6 +392,26 @@ const btnTestChallenge = document.getElementById('btnTestChallenge');
 const challFeedback = document.getElementById('challFeedback');
 const challOutcomeBox = document.getElementById('challOutcomeBox');
 
+// Sub-Tab 4 Elements (Custom Sandbox)
+const customX0Range = document.getElementById('customX0Range');
+const customXTurnRange = document.getElementById('customXTurnRange');
+const customXfRange = document.getElementById('customXfRange');
+const customV1Range = document.getElementById('customV1Range');
+const customV2Range = document.getElementById('customV2Range');
+const customX0Val = document.getElementById('customX0Val');
+const customXTurnVal = document.getElementById('customXTurnVal');
+const customXfVal = document.getElementById('customXfVal');
+const customV1Val = document.getElementById('customV1Val');
+const customV2Val = document.getElementById('customV2Val');
+const btnRunCustom = document.getElementById('btnRunCustom');
+const btnResetCustom = document.getElementById('btnResetCustom');
+const customMetricV1 = document.getElementById('customMetricV1');
+const customMetricV2 = document.getElementById('customMetricV2');
+const customMetricDx = document.getElementById('customMetricDx');
+const customMetricDist = document.getElementById('customMetricDist');
+const customMetricVavg = document.getElementById('customMetricVavg');
+const customMetricSpeedAvg = document.getElementById('customMetricSpeedAvg');
+
 // =========================================================================
 // INITIALIZATION
 // =========================================================================
@@ -379,20 +425,20 @@ function init() {
 
   resetRoundTrip();
   resetRelay();
+  resetCustomSandbox();
   
   animate(0);
 }
 
 function setupEventListeners() {
-  // Activity Switcher
   btnActConstant.addEventListener('click', () => switchActivity('constant'));
   btnActAverage.addEventListener('click', () => switchActivity('average'));
   btnActWalker.addEventListener('click', () => switchActivity('walker'));
 
-  // Walker Sub-Mode Switcher
   btnSubRoundTrip.addEventListener('click', () => switchWalkerSubMode('roundtrip'));
   btnSubRelay.addEventListener('click', () => switchWalkerSubMode('relay'));
   btnSubChallenge.addEventListener('click', () => switchWalkerSubMode('challenge'));
+  btnSubCustomSandbox.addEventListener('click', () => switchWalkerSubMode('custom'));
 
   // -------------------------------------------------------------------------
   // Activity 1 Listeners
@@ -455,7 +501,6 @@ function setupEventListeners() {
     });
   });
 
-  // Sandbox bidirectional controls
   sbRedStart.addEventListener('input', (e) => {
     sbRedStartVal.textContent = e.target.value;
     state.carRed.x0 = parseFloat(e.target.value);
@@ -589,7 +634,7 @@ function setupEventListeners() {
   });
 
   // -------------------------------------------------------------------------
-  // Activity 3: Walker & Relay Listeners
+  // Activity 3 Listeners
   // -------------------------------------------------------------------------
   rtTurnDistInput.addEventListener('input', (e) => {
     const val = parseFloat(e.target.value) || 10.0;
@@ -599,6 +644,9 @@ function setupEventListeners() {
     rtTableXTurn.textContent = `${state.rtTurnDist.toFixed(1)} m`;
     resetRoundTrip();
   });
+
+  // Turnaround Cone Click and Drag Event Listeners
+  setupWalkerCanvasDragging();
 
   rtTimingMode.addEventListener('change', (e) => {
     state.rtTimingMode = e.target.value;
@@ -638,6 +686,40 @@ function setupEventListeners() {
   });
 
   btnTestChallenge.addEventListener('click', testRelayChallenge);
+
+  // -------------------------------------------------------------------------
+  // Sub-Tab 4: Custom Sandbox Listeners
+  // -------------------------------------------------------------------------
+  customX0Range.addEventListener('input', (e) => {
+    state.customX0 = parseFloat(e.target.value);
+    customX0Val.textContent = `${state.customX0} m`;
+    resetCustomSandbox();
+  });
+  customXTurnRange.addEventListener('input', (e) => {
+    state.customXTurn = parseFloat(e.target.value);
+    customXTurnVal.textContent = `${state.customXTurn} m`;
+    resetCustomSandbox();
+  });
+  customXfRange.addEventListener('input', (e) => {
+    state.customXf = parseFloat(e.target.value);
+    customXfVal.textContent = `${state.customXf} m`;
+    resetCustomSandbox();
+  });
+  customV1Range.addEventListener('input', (e) => {
+    state.customV1 = parseFloat(e.target.value);
+    customV1Val.textContent = `${state.customV1} m/s`;
+    resetCustomSandbox();
+  });
+  customV2Range.addEventListener('input', (e) => {
+    state.customV2 = parseFloat(e.target.value);
+    customV2Val.textContent = `${state.customV2} m/s`;
+    resetCustomSandbox();
+  });
+
+  btnRunCustom.addEventListener('click', startCustomSandbox);
+  btnResetCustom.addEventListener('click', resetCustomSandbox);
+
+  setupCustomCanvasDragging();
 }
 
 function updateSandboxDirectionButtons() {
@@ -675,11 +757,7 @@ function switchActivity(act) {
     drawAvgSimulation();
     drawAvgGraph();
   } else {
-    drawWalkerSimulation();
-    drawRtGraph();
-    drawRelaySimulation();
-    drawRelayGraph();
-    drawChallSimulation();
+    switchWalkerSubMode(state.walkerSubMode);
   }
 }
 
@@ -688,10 +766,12 @@ function switchWalkerSubMode(sub) {
   btnSubRoundTrip.classList.toggle('active', sub === 'roundtrip');
   btnSubRelay.classList.toggle('active', sub === 'relay');
   btnSubChallenge.classList.toggle('active', sub === 'challenge');
+  btnSubCustomSandbox.classList.toggle('active', sub === 'custom');
 
   walkerRoundTripSection.style.display = (sub === 'roundtrip') ? 'block' : 'none';
   walkerRelaySection.style.display = (sub === 'relay') ? 'block' : 'none';
   walkerChallengeSection.style.display = (sub === 'challenge') ? 'block' : 'none';
+  walkerCustomSection.style.display = (sub === 'custom') ? 'block' : 'none';
 
   if (sub === 'roundtrip') {
     drawWalkerSimulation();
@@ -699,9 +779,106 @@ function switchWalkerSubMode(sub) {
   } else if (sub === 'relay') {
     drawRelaySimulation();
     drawRelayGraph();
-  } else {
+  } else if (sub === 'challenge') {
     drawChallSimulation();
+  } else {
+    drawCustomSimulation();
+    drawCustomGraph();
   }
+}
+
+// =========================================================================
+// DRAG-AND-DROP CANVAS INTERACTION
+// =========================================================================
+function setupWalkerCanvasDragging() {
+  function getMeterFromEvent(e) {
+    const rect = walkerCanvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const px = clientX - rect.left;
+    const scaleX = walkerCanvas.width / rect.width;
+    const canvasPx = px * scaleX;
+    const m = (canvasPx - TRACK_PADDING) / MeterScaleFactor;
+    return Math.max(4.0, Math.min(18.0, Math.round(m)));
+  }
+
+  walkerCanvas.addEventListener('mousedown', (e) => {
+    if (state.rtIsRunning) return;
+    const m = getMeterFromEvent(e);
+    if (Math.abs(m - state.rtTurnDist) <= 2.5) {
+      state.rtDraggingCone = true;
+    }
+  });
+
+  walkerCanvas.addEventListener('mousemove', (e) => {
+    if (!state.rtDraggingCone || state.rtIsRunning) return;
+    const m = getMeterFromEvent(e);
+    state.rtTurnDist = m;
+    rtTurnDistInput.value = m;
+    rtTurnDisplay.textContent = `${m}`;
+    rtBannerTurnPos.textContent = `${m}`;
+    rtTableXTurn.textContent = `${m.toFixed(1)} m`;
+    resetRoundTrip();
+  });
+
+  window.addEventListener('mouseup', () => { state.rtDraggingCone = false; });
+  walkerCanvas.addEventListener('touchstart', (e) => {
+    if (state.rtIsRunning) return;
+    const m = getMeterFromEvent(e);
+    if (Math.abs(m - state.rtTurnDist) <= 2.5) state.rtDraggingCone = true;
+  });
+  walkerCanvas.addEventListener('touchmove', (e) => {
+    if (!state.rtDraggingCone || state.rtIsRunning) return;
+    e.preventDefault();
+    const m = getMeterFromEvent(e);
+    state.rtTurnDist = m;
+    rtTurnDistInput.value = m;
+    rtTurnDisplay.textContent = `${m}`;
+    rtBannerTurnPos.textContent = `${m}`;
+    rtTableXTurn.textContent = `${m.toFixed(1)} m`;
+    resetRoundTrip();
+  });
+  window.addEventListener('touchend', () => { state.rtDraggingCone = false; });
+}
+
+function setupCustomCanvasDragging() {
+  function getCustomMeterFromEvent(e) {
+    const rect = customCanvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const px = clientX - rect.left;
+    const scaleX = customCanvas.width / rect.width;
+    const canvasPx = px * scaleX;
+    const m = (canvasPx - TRACK_PADDING) / MeterScaleFactor;
+    return Math.max(0.0, Math.min(20.0, Math.round(m)));
+  }
+
+  customCanvas.addEventListener('mousedown', (e) => {
+    if (state.customIsRunning) return;
+    const m = getCustomMeterFromEvent(e);
+    if (Math.abs(m - state.customXTurn) <= 1.5) state.customDraggingMarker = 'xturn';
+    else if (Math.abs(m - state.customX0) <= 1.5) state.customDraggingMarker = 'x0';
+    else if (Math.abs(m - state.customXf) <= 1.5) state.customDraggingMarker = 'xf';
+  });
+
+  customCanvas.addEventListener('mousemove', (e) => {
+    if (!state.customDraggingMarker || state.customIsRunning) return;
+    const m = getCustomMeterFromEvent(e);
+    if (state.customDraggingMarker === 'xturn') {
+      state.customXTurn = m;
+      customXTurnRange.value = m;
+      customXTurnVal.textContent = `${m} m`;
+    } else if (state.customDraggingMarker === 'x0') {
+      state.customX0 = m;
+      customX0Range.value = m;
+      customX0Val.textContent = `${m} m`;
+    } else if (state.customDraggingMarker === 'xf') {
+      state.customXf = m;
+      customXfRange.value = m;
+      customXfVal.textContent = `${m} m`;
+    }
+    resetCustomSandbox();
+  });
+
+  window.addEventListener('mouseup', () => { state.customDraggingMarker = null; });
 }
 
 // =========================================================================
@@ -1482,7 +1659,7 @@ function resetRoundTrip() {
   btnRtTimer2Stop.disabled = true;
   btnRtTimer1Stop.disabled = true;
 
-  rtStatusIndicator.textContent = "Ready — click Start Round Trip";
+  rtStatusIndicator.textContent = "Ready — click Start Round Trip or drag the cone to adjust distance";
   rtStatusIndicator.className = "status-badge";
   rtStatusIndicator.style.background = "#eef8fb";
   rtStatusIndicator.style.color = "var(--accent-strong)";
@@ -1848,7 +2025,6 @@ function testRelayChallenge() {
     challFeedback.innerHTML = `⚠️ <strong>Discrepancy:</strong> Your calculation (${enteredV3.toFixed(2)} m/s) differs from the required velocity (${sol.v3Required.toFixed(2)} m/s). Check your total time equation: <span class="math-expr">Δ<i>t</i><sub>total</sub> = 16 m / ${vTarget} m/s</span>.`;
   }
 
-  // Run Challenge Simulation
   state.challIsRunning = true;
   state.challElapsedTime = 0.0;
   state.challLastTimestamp = performance.now();
@@ -1874,6 +2050,93 @@ function updateChallPhysics(dt) {
     challOutcomeBox.className = 'alert-box info';
     challOutcomeBox.innerHTML = `🏁 <strong>Simulated Relay Finished!</strong> Total Time = <strong>${state.challElapsedTime.toFixed(2)} s</strong> · Resulting Team Average Velocity = <strong>${finalVavg.toFixed(2)} m/s</strong>.`;
   }
+}
+
+// --- SUB-TAB 4: CUSTOM SANDBOX METHODS ---
+function resetCustomSandbox() {
+  state.customIsRunning = false;
+  state.customElapsedTime = 0.0;
+  state.customWalker = {
+    x: state.customX0,
+    v: state.customV1,
+    segment: 1,
+    isFinished: false,
+    stepPhase: 0.0
+  };
+
+  btnRunCustom.disabled = false;
+
+  const dx1 = state.customXTurn - state.customX0;
+  const dx2 = state.customXf - state.customXTurn;
+  const dist1 = Math.abs(dx1);
+  const dist2 = Math.abs(dx2);
+
+  const dt1 = dist1 / (state.customV1 || 1e-5);
+  const dt2 = dist2 / (state.customV2 || 1e-5);
+  const totalTime = dt1 + dt2;
+
+  const v1 = dt1 > 0 ? dx1 / dt1 : 0;
+  const v2 = dt2 > 0 ? dx2 / dt2 : 0;
+
+  const totalDx = state.customXf - state.customX0;
+  const totalDist = dist1 + dist2;
+  const vAvg = totalTime > 0 ? totalDx / totalTime : 0;
+  const speedAvg = totalTime > 0 ? totalDist / totalTime : 0;
+
+  customMetricV1.textContent = `${v1 > 0 ? '+' : ''}${v1.toFixed(2)} m/s`;
+  customMetricV2.textContent = `${v2 > 0 ? '+' : ''}${v2.toFixed(2)} m/s`;
+  customMetricDx.textContent = `${totalDx > 0 ? '+' : ''}${totalDx.toFixed(1)} m`;
+  customMetricDist.textContent = `${totalDist.toFixed(1)} m`;
+  customMetricVavg.textContent = `${vAvg > 0 ? '+' : ''}${vAvg.toFixed(2)} m/s`;
+  customMetricSpeedAvg.textContent = `${speedAvg.toFixed(2)} m/s`;
+
+  drawCustomSimulation();
+  drawCustomGraph();
+}
+
+function startCustomSandbox() {
+  if (state.customIsRunning) return;
+  resetCustomSandbox();
+  state.customIsRunning = true;
+  state.customElapsedTime = 0.0;
+  state.customLastTimestamp = performance.now();
+  btnRunCustom.disabled = true;
+}
+
+function updateCustomPhysics(dt) {
+  if (!state.customIsRunning) return;
+
+  const dx1 = state.customXTurn - state.customX0;
+  const dx2 = state.customXf - state.customXTurn;
+  const dist1 = Math.abs(dx1);
+  const dist2 = Math.abs(dx2);
+
+  const dt1 = dist1 / (state.customV1 || 1e-5);
+  const dt2 = dist2 / (state.customV2 || 1e-5);
+  const totalTime = dt1 + dt2;
+
+  const dir1 = dx1 >= 0 ? 1 : -1;
+  const dir2 = dx2 >= 0 ? 1 : -1;
+
+  if (state.customElapsedTime <= dt1) {
+    state.customWalker.x = state.customX0 + dir1 * state.customV1 * state.customElapsedTime;
+    state.customWalker.v = dir1 * state.customV1;
+    state.customWalker.segment = 1;
+  } else if (state.customElapsedTime < totalTime) {
+    const t2 = state.customElapsedTime - dt1;
+    state.customWalker.x = state.customXTurn + dir2 * state.customV2 * t2;
+    state.customWalker.v = dir2 * state.customV2;
+    state.customWalker.segment = 2;
+  } else {
+    state.customWalker.x = state.customXf;
+    state.customWalker.v = dir2 * state.customV2;
+    state.customWalker.segment = 'done';
+    state.customWalker.isFinished = true;
+    state.customIsRunning = false;
+    btnRunCustom.disabled = false;
+  }
+
+  state.customWalker.stepPhase += Math.abs(state.customWalker.v) * dt * 3.5;
 }
 
 // =========================================================================
@@ -1929,6 +2192,14 @@ function animate(timestamp) {
         updateChallPhysics(dt);
       }
       drawChallSimulation();
+    } else if (state.walkerSubMode === 'custom') {
+      if (state.customIsRunning) {
+        const dt = Math.min((timestamp - state.customLastTimestamp) / 1000, 0.1);
+        state.customLastTimestamp = timestamp;
+        state.customElapsedTime += dt;
+        updateCustomPhysics(dt);
+      }
+      drawCustomSimulation();
     }
   }
   
@@ -1936,7 +2207,7 @@ function animate(timestamp) {
 }
 
 // =========================================================================
-// CANVAS DRAWING (CONSTANT VELOCITY & ARDUINO MODES)
+// CANVAS DRAWING HELPERS
 // =========================================================================
 function draw() {
   simCtx.clearRect(0, 0, SIM_WIDTH, SIM_HEIGHT);
@@ -2419,10 +2690,6 @@ function drawAvgGraph() {
   });
 }
 
-// =========================================================================
-// CANVAS DRAWING: ACTIVITY 3 (WALKER & RELAY)
-// =========================================================================
-
 // --- Draw Walker Round Trip Canvas ---
 function drawWalkerSimulation() {
   walkerCtx.clearRect(0, 0, SIM_WIDTH, SIM_HEIGHT);
@@ -2444,7 +2711,6 @@ function drawWalkerSimulation() {
     walkerCtx.fillText(`${m} m`, x, 16);
   }
 
-  // Ground Track
   const TRACK_CENTER_Y = 135;
   walkerCtx.fillStyle = '#e9f4fb';
   walkerCtx.fillRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
@@ -2453,14 +2719,8 @@ function drawWalkerSimulation() {
   walkerCtx.strokeRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
 
   drawRulerTape(walkerCtx, METER_MAX, 'm');
-
-  // Turnaround Cone Marker
   drawTurnaroundCone(walkerCtx, state.rtTurnDist);
-
-  // Start Marker at 0m
   drawLocationFlagM(walkerCtx, 0.0, 'Start (0 m)', '#1a7f4e', 45);
-
-  // Animated Walker
   drawAnimatedWalker(walkerCtx, state.rtWalker.x, TRACK_CENTER_Y - 2, state.rtWalker.v, state.rtWalker.stepPhase, '#0f7e9b', 'Student 3 (Walker)');
 }
 
@@ -2492,7 +2752,6 @@ function drawRtGraph() {
   rtGraphCtx.strokeStyle = '#ced4da';
   rtGraphCtx.strokeRect(paddingLeft, paddingTop, graphW, graphH);
 
-  // Grid
   rtGraphCtx.strokeStyle = '#e9ecef';
   for (let t = 0; t <= maxT + 1e-4; t += maxT / 10) {
     const x = timeToPx(t);
@@ -2529,7 +2788,6 @@ function drawRtGraph() {
   rtGraphCtx.fillText('Position (meters)', 0, 0);
   rtGraphCtx.restore();
 
-  // Lines
   if (tTurn !== null) {
     rtGraphCtx.strokeStyle = '#0f7e9b';
     rtGraphCtx.lineWidth = 3;
@@ -2547,7 +2805,6 @@ function drawRtGraph() {
     rtGraphCtx.lineTo(timeToPx(tFinal), posToPx(0));
     rtGraphCtx.stroke();
 
-    // Average velocity chord (horizontal at 0m)
     rtGraphCtx.strokeStyle = '#1a7f4e';
     rtGraphCtx.lineWidth = 2.5;
     rtGraphCtx.setLineDash([5, 4]);
@@ -2558,7 +2815,6 @@ function drawRtGraph() {
     rtGraphCtx.setLineDash([]);
   }
 
-  // Points
   const pts = [{ t: 0, x: 0, label: 'Start (0s, 0m)', color: '#1a7f4e' }];
   if (tTurn !== null) pts.push({ t: tTurn, x: xTurn, label: `Turn (${tTurn.toFixed(2)}s, ${xTurn}m)`, color: '#d67b19' });
   if (tFinal !== null) pts.push({ t: tFinal, x: 0, label: `Return (${tFinal.toFixed(2)}s, 0m)`, color: '#c92a2a' });
@@ -2611,13 +2867,11 @@ function drawRelaySimulation() {
 
   drawRulerTape(relayCtx, METER_MAX, 'm');
 
-  // Handoff & Finish Markers
   drawLocationFlagM(relayCtx, 0.0, 'Start (0 m)', '#1a7f4e', 45);
   drawLocationFlagM(relayCtx, 8.0, 'Handoff 1 (8 m)', '#1c7ed6', 45);
   drawLocationFlagM(relayCtx, 12.0, 'Handoff 2 (12 m)', '#d67b19', 45);
   drawLocationFlagM(relayCtx, 16.0, 'Finish Line (16 m)', '#c92a2a', 45);
 
-  // Active Relay Runner
   const activeS = state.relayRunners.activeStudent;
   const runnerColor = activeS === 1 ? '#1c7ed6' : (activeS === 2 ? '#d67b19' : '#1a7f4e');
   const runnerLabel = activeS === 'done' ? 'Relay Finished' : `Student ${activeS}`;
@@ -2688,7 +2942,6 @@ function drawRelayGraph() {
   relayGraphCtx.fillText('Position (meters)', 0, 0);
   relayGraphCtx.restore();
 
-  // Draw 3 Connected Segments
   if (t1 !== null) {
     relayGraphCtx.strokeStyle = '#1c7ed6';
     relayGraphCtx.lineWidth = 3;
@@ -2715,7 +2968,6 @@ function drawRelayGraph() {
     relayGraphCtx.lineTo(timeToPx(t3), posToPx(16));
     relayGraphCtx.stroke();
 
-    // Average Velocity chord
     relayGraphCtx.strokeStyle = '#0f7e9b';
     relayGraphCtx.lineWidth = 2;
     relayGraphCtx.setLineDash([5, 4]);
@@ -2784,6 +3036,129 @@ function drawChallSimulation() {
 
   const runnerX = state.challRunner.x;
   drawAnimatedWalker(challCtx, runnerX, TRACK_CENTER_Y - 2, 4.0, state.challRunner.stepPhase, '#d67b19', `Student ${state.challRunner.activeStudent}`);
+}
+
+// --- Draw Custom Sandbox Canvas ---
+function drawCustomSimulation() {
+  customCtx.clearRect(0, 0, SIM_WIDTH, SIM_HEIGHT);
+
+  for (let m = 0; m <= METER_MAX; m += 2) {
+    const x = meterToPx(m);
+    customCtx.strokeStyle = 'rgba(15, 126, 155, 0.15)';
+    customCtx.lineWidth = 1.5;
+    customCtx.setLineDash([5, 5]);
+    customCtx.beginPath();
+    customCtx.moveTo(x, 20);
+    customCtx.lineTo(x, RULER_Y - 2);
+    customCtx.stroke();
+    customCtx.setLineDash([]);
+
+    customCtx.fillStyle = 'rgba(12, 54, 68, 0.5)';
+    customCtx.font = '500 10px sans-serif';
+    customCtx.textAlign = 'center';
+    customCtx.fillText(`${m} m`, x, 16);
+  }
+
+  const TRACK_CENTER_Y = 135;
+  customCtx.fillStyle = '#e9f4fb';
+  customCtx.fillRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
+  customCtx.strokeStyle = '#0f7e9b';
+  customCtx.lineWidth = 2;
+  customCtx.strokeRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
+
+  drawRulerTape(customCtx, METER_MAX, 'm');
+
+  // Custom Markers
+  drawLocationFlagM(customCtx, state.customX0, `Start X₀ (${state.customX0} m)`, '#1a7f4e', 45);
+  drawTurnaroundCone(customCtx, state.customXTurn);
+  drawLocationFlagM(customCtx, state.customXf, `Destination X_f (${state.customXf} m)`, '#c92a2a', 65);
+
+  drawAnimatedWalker(customCtx, state.customWalker.x, TRACK_CENTER_Y - 2, state.customWalker.v, state.customWalker.stepPhase, '#0f7e9b', 'Custom Walker');
+}
+
+function drawCustomGraph() {
+  customGraphCtx.clearRect(0, 0, GRAPH_WIDTH, 340);
+
+  const paddingLeft = 60;
+  const paddingRight = 30;
+  const paddingTop = 25;
+  const paddingBottom = 40;
+
+  const graphW = GRAPH_WIDTH - paddingLeft - paddingRight;
+  const graphH = 340 - paddingTop - paddingBottom;
+
+  const dx1 = Math.abs(state.customXTurn - state.customX0);
+  const dx2 = Math.abs(state.customXf - state.customXTurn);
+  const dt1 = dx1 / (state.customV1 || 1e-5);
+  const dt2 = dx2 / (state.customV2 || 1e-5);
+  const totalTime = dt1 + dt2;
+
+  let maxT = Math.max(10.0, Math.ceil((totalTime + 2) / 5) * 5);
+  const maxPosVal = 20.0;
+
+  function timeToPx(t) { return paddingLeft + (t / maxT) * graphW; }
+  function posToPx(x) { return paddingTop + graphH - (x / maxPosVal) * graphH; }
+
+  customGraphCtx.fillStyle = '#f8f9fa';
+  customGraphCtx.fillRect(paddingLeft, paddingTop, graphW, graphH);
+  customGraphCtx.strokeStyle = '#ced4da';
+  customGraphCtx.strokeRect(paddingLeft, paddingTop, graphW, graphH);
+
+  customGraphCtx.strokeStyle = '#e9ecef';
+  for (let t = 0; t <= maxT + 1e-4; t += maxT / 10) {
+    const x = timeToPx(t);
+    customGraphCtx.beginPath();
+    customGraphCtx.moveTo(x, paddingTop);
+    customGraphCtx.lineTo(x, paddingTop + graphH);
+    customGraphCtx.stroke();
+    customGraphCtx.fillStyle = '#495057';
+    customGraphCtx.font = '10px sans-serif';
+    customGraphCtx.textAlign = 'center';
+    customGraphCtx.fillText(t.toFixed(1), x, paddingTop + graphH + 15);
+  }
+
+  for (let p = 0; p <= maxPosVal; p += 2) {
+    const y = posToPx(p);
+    customGraphCtx.beginPath();
+    customGraphCtx.moveTo(paddingLeft, y);
+    customGraphCtx.lineTo(paddingLeft + graphW, y);
+    customGraphCtx.stroke();
+    customGraphCtx.fillStyle = '#495057';
+    customGraphCtx.font = '10px sans-serif';
+    customGraphCtx.textAlign = 'right';
+    customGraphCtx.fillText(`${p}`, paddingLeft - 8, y + 3);
+  }
+
+  customGraphCtx.fillStyle = '#123140';
+  customGraphCtx.font = 'bold 11px sans-serif';
+  customGraphCtx.textAlign = 'center';
+  customGraphCtx.fillText('Time (s)', paddingLeft + graphW / 2, paddingTop + graphH + 32);
+
+  // Leg 1 Line
+  customGraphCtx.strokeStyle = '#0f7e9b';
+  customGraphCtx.lineWidth = 3;
+  customGraphCtx.beginPath();
+  customGraphCtx.moveTo(timeToPx(0), posToPx(state.customX0));
+  customGraphCtx.lineTo(timeToPx(dt1), posToPx(state.customXTurn));
+  customGraphCtx.stroke();
+
+  // Leg 2 Line
+  customGraphCtx.strokeStyle = '#d67b19';
+  customGraphCtx.lineWidth = 3;
+  customGraphCtx.beginPath();
+  customGraphCtx.moveTo(timeToPx(dt1), posToPx(state.customXTurn));
+  customGraphCtx.lineTo(timeToPx(totalTime), posToPx(state.customXf));
+  customGraphCtx.stroke();
+
+  // Average Velocity Chord
+  customGraphCtx.strokeStyle = '#1a7f4e';
+  customGraphCtx.lineWidth = 2.5;
+  customGraphCtx.setLineDash([5, 4]);
+  customGraphCtx.beginPath();
+  customGraphCtx.moveTo(timeToPx(0), posToPx(state.customX0));
+  customGraphCtx.lineTo(timeToPx(totalTime), posToPx(state.customXf));
+  customGraphCtx.stroke();
+  customGraphCtx.setLineDash([]);
 }
 
 // =========================================================================
@@ -2863,7 +3238,6 @@ function drawTurnaroundCone(ctx, meterPos) {
   const x = meterToPx(meterPos);
   ctx.save();
   
-  // Traffic Cone
   ctx.fillStyle = '#f59f00';
   ctx.beginPath();
   ctx.moveTo(x - 9, 135);
@@ -2875,7 +3249,6 @@ function drawTurnaroundCone(ctx, meterPos) {
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // White stripe on cone
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.moveTo(x - 5, 122);
@@ -2885,7 +3258,6 @@ function drawTurnaroundCone(ctx, meterPos) {
   ctx.closePath();
   ctx.fill();
 
-  // Turnaround Flag
   ctx.strokeStyle = '#d67b19';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([3, 3]);
@@ -2939,7 +3311,7 @@ function drawRulerTape(ctx, maxVal, unit) {
   ctx.textAlign = 'center';
   ctx.font = 'bold 11px "IBM Plex Sans", sans-serif';
   
-  const step = unit === 'm' ? 1 : 1;
+  const step = 1;
   const majorStep = unit === 'm' ? 2 : 30;
   const midStep = unit === 'm' ? 1 : 10;
   
