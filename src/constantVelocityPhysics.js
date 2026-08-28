@@ -208,12 +208,6 @@ export function calculatePercentError(exp, theo) {
 // AVERAGE VELOCITY / ARDUINO CARS MULTI-SEGMENT TRIP ENGINE
 // =========================================================================
 
-/**
- * Standard definitions for Arduino Car Trips 1 through 8
- * Each trip consists of:
- * - Segment 1: from x0 to xTape at velocity v1
- * - Segment 2: from xTape to xf at velocity v2
- */
 export const ARDUINO_TRIPS = {
   1: {
     trip: 1,
@@ -297,9 +291,6 @@ export const ARDUINO_TRIPS = {
   }
 };
 
-/**
- * Standard group scenarios (Groups A through F) from the Average Velocity Arduino Cars Lab.
- */
 export const ARDUINO_GROUPS = {
   'A': {
     group: 'A',
@@ -333,12 +324,6 @@ export const ARDUINO_GROUPS = {
   }
 };
 
-/**
- * Calculates theoretical transition times and total time for a piecewise trip.
- * 
- * @param {object} trip - { x0, xTape, xf, v1, v2 }
- * @returns {object} { t1, t2, totalTime }
- */
 export function calculateTripDuration(trip) {
   const dist1 = Math.abs(trip.xTape - trip.x0);
   const dist2 = Math.abs(trip.xf - trip.xTape);
@@ -353,13 +338,6 @@ export function calculateTripDuration(trip) {
   return { t1, t2, totalTime };
 }
 
-/**
- * Calculates the instantaneous position and current velocity of a car in piecewise motion at elapsed time t.
- * 
- * @param {number} t - Elapsed time in seconds
- * @param {object} trip - { x0, xTape, xf, v1, v2 }
- * @returns {object} { x: number, v: number, segment: 1|2|'done', isFinished: boolean }
- */
 export function calculatePiecewisePosition(t, trip) {
   if (t <= 0) {
     return { x: trip.x0, v: trip.v1, segment: 1, isFinished: false };
@@ -368,31 +346,17 @@ export function calculatePiecewisePosition(t, trip) {
   const { t1, totalTime } = calculateTripDuration(trip);
   
   if (t <= t1) {
-    // In Segment 1
     const x = trip.x0 + trip.v1 * t;
     return { x: clampPosition(x), v: trip.v1, segment: 1, isFinished: false };
   } else if (t < totalTime) {
-    // In Segment 2
     const dt2 = t - t1;
     const x = trip.xTape + trip.v2 * dt2;
     return { x: clampPosition(x), v: trip.v2, segment: 2, isFinished: false };
   } else {
-    // Finished
     return { x: trip.xf, v: trip.v2, segment: 'done', isFinished: true };
   }
 }
 
-/**
- * Calculates complete average velocity, average speed, displacement, and segment metrics.
- * 
- * @param {number} x0 - Starting position (cm)
- * @param {number} xTape - Tape transition position (cm)
- * @param {number} xf - Final position (cm)
- * @param {number} t0 - Start time (s)
- * @param {number} tTape - Tape crossing time (s)
- * @param {number} tf - Finish time (s)
- * @returns {object} Full kinematic summary
- */
 export function calculateAverageVelocityMetrics(x0, xTape, xf, t0, tTape, tf) {
   const dt1 = tTape - t0;
   const dt2 = tf - tTape;
@@ -411,8 +375,6 @@ export function calculateAverageVelocityMetrics(x0, xTape, xf, t0, tTape, tf) {
   
   const averageVelocity = totalTime > 0 ? totalDisplacement / totalTime : 0;
   const averageSpeed = totalTime > 0 ? totalDistance / totalTime : 0;
-  
-  // Arithmetic mean of velocities (to highlight the common student misconception)
   const arithmeticMeanVelocity = (v1 + v2) / 2;
   
   return {
@@ -426,5 +388,226 @@ export function calculateAverageVelocityMetrics(x0, xTape, xf, t0, tTape, tf) {
       averageSpeed,
       arithmeticMeanVelocity
     }
+  };
+}
+
+// =========================================================================
+// WALKER & RELAY ACTIVITIES (HUMAN KINEMATICS IN METERS)
+// =========================================================================
+
+export const WALKER_TRACK_MIN = 0.0;   // m
+export const WALKER_TRACK_MAX = 20.0;  // m
+
+/**
+ * Standard parameters for the 3-Person Relay (Part 3 & 4).
+ * Track positions: Start = 0m, Handoff 1 = 8m, Handoff 2 = 12m, Finish = 16m.
+ */
+export const RELAY_CONFIG = {
+  x0: 0.0,
+  x1: 8.0,
+  x2: 12.0,
+  x3: 16.0,
+  defaultV1: 4.0, // m/s (Walks quickly 0 -> 8m in ~2.0s)
+  defaultV2: 2.0, // m/s (Medium pace 8 -> 12m in ~2.0s)
+  defaultV3: 1.0  // m/s (Slow pace 12 -> 16m in ~4.0s)
+};
+
+/**
+ * Standard parameters for Part 1 & 2: Round Trip.
+ */
+export const ROUND_TRIP_CONFIG = {
+  x0: 0.0,
+  xTurn: 10.0, // m
+  xf: 0.0,
+  defaultVOut: 4.0,   // m/s (Walks quickly 0 -> 10m in 2.5s)
+  defaultVBack: -2.0  // m/s (Returns slowly 10 -> 0m in 5.0s)
+};
+
+/**
+ * Calculates Round Trip position at elapsed time t.
+ * 
+ * @param {number} t - Elapsed time in seconds
+ * @param {number} xTurn - Turnaround distance in meters
+ * @param {number} vOut - Outbound velocity (positive, m/s)
+ * @param {number} vBack - Inbound velocity (negative, m/s)
+ * @returns {object} { x, v, segment: 1|2|'done', tTurn, totalTime, isFinished }
+ */
+export function calculateWalkerRoundTrip(t, xTurn = 10.0, vOut = 4.0, vBack = -2.0) {
+  const speedOut = Math.abs(vOut) || 1e-5;
+  const speedBack = Math.abs(vBack) || 1e-5;
+  
+  const tTurn = xTurn / speedOut;
+  const tReturn = xTurn / speedBack;
+  const totalTime = tTurn + tReturn;
+  
+  if (t <= 0) {
+    return { x: 0.0, v: vOut, segment: 1, tTurn, totalTime, isFinished: false };
+  } else if (t <= tTurn) {
+    const x = Math.min(xTurn, vOut * t);
+    return { x, v: vOut, segment: 1, tTurn, totalTime, isFinished: false };
+  } else if (t < totalTime) {
+    const dt = t - tTurn;
+    const x = Math.max(0.0, xTurn + vBack * dt);
+    return { x, v: vBack, segment: 2, tTurn, totalTime, isFinished: false };
+  } else {
+    return { x: 0.0, v: vBack, segment: 'done', tTurn, totalTime, isFinished: true };
+  }
+}
+
+/**
+ * Calculates Round Trip kinematic summary metrics.
+ */
+export function calculateRoundTripMetrics(xTurn, tTurn, tTotal) {
+  const dt1 = tTurn;
+  const dt2 = tTotal - tTurn;
+  const totalTime = tTotal;
+  
+  const dx1 = xTurn;
+  const dx2 = -xTurn;
+  const totalDisplacement = 0.0;
+  const totalDistance = 2 * xTurn;
+  
+  const v1 = dt1 > 0 ? dx1 / dt1 : 0;
+  const v2 = dt2 > 0 ? dx2 / dt2 : 0;
+  
+  const averageVelocity = 0.0;
+  const averageSpeed = totalTime > 0 ? totalDistance / totalTime : 0;
+  const arithmeticMeanVelocity = (v1 + v2) / 2;
+  
+  return {
+    segment1: { dx: dx1, dt: dt1, v: v1, dist: dx1 },
+    segment2: { dx: dx2, dt: dt2, v: v2, dist: Math.abs(dx2) },
+    total: {
+      dx: totalDisplacement,
+      distance: totalDistance,
+      dt: totalTime,
+      averageVelocity,
+      averageSpeed,
+      arithmeticMeanVelocity
+    }
+  };
+}
+
+/**
+ * Calculates 3-Person Relay position at elapsed time t.
+ * 
+ * @param {number} t - Elapsed time in seconds
+ * @param {object} config - { x0, x1, x2, x3, v1, v2, v3 }
+ * @returns {object} { x, v, activeStudent: 1|2|3|'done', t1, t2, t3, isFinished }
+ */
+export function calculateRelayPosition(t, config = RELAY_CONFIG) {
+  const d1 = config.x1 - config.x0; // 8m
+  const d2 = config.x2 - config.x1; // 4m
+  const d3 = config.x3 - config.x2; // 4m
+  
+  const dt1 = d1 / (Math.abs(config.defaultV1 || config.v1) || 1e-5);
+  const dt2 = d2 / (Math.abs(config.defaultV2 || config.v2) || 1e-5);
+  const dt3 = d3 / (Math.abs(config.defaultV3 || config.v3) || 1e-5);
+  
+  const t1 = dt1;
+  const t2 = dt1 + dt2;
+  const t3 = dt1 + dt2 + dt3;
+  
+  const v1 = config.defaultV1 || config.v1;
+  const v2 = config.defaultV2 || config.v2;
+  const v3 = config.defaultV3 || config.v3;
+  
+  if (t <= 0) {
+    return { x: config.x0, v: v1, activeStudent: 1, t1, t2, t3, isFinished: false };
+  } else if (t <= t1) {
+    const x = config.x0 + v1 * t;
+    return { x: Math.min(config.x1, x), v: v1, activeStudent: 1, t1, t2, t3, isFinished: false };
+  } else if (t <= t2) {
+    const x = config.x1 + v2 * (t - t1);
+    return { x: Math.min(config.x2, x), v: v2, activeStudent: 2, t1, t2, t3, isFinished: false };
+  } else if (t < t3) {
+    const x = config.x2 + v3 * (t - t2);
+    return { x: Math.min(config.x3, x), v: v3, activeStudent: 3, t1, t2, t3, isFinished: false };
+  } else {
+    return { x: config.x3, v: v3, activeStudent: 'done', t1, t2, t3, isFinished: true };
+  }
+}
+
+/**
+ * Calculates 3-Person Relay kinematic metrics from cumulative timer readings t1, t2, t3.
+ */
+export function calculateRelayMetrics(t1, t2, t3, config = RELAY_CONFIG) {
+  const d1 = config.x1 - config.x0; // 8m
+  const d2 = config.x2 - config.x1; // 4m
+  const d3 = config.x3 - config.x2; // 4m
+  const totalDistance = config.x3 - config.x0; // 16m
+  
+  const dt1 = t1;
+  const dt2 = t2 - t1;
+  const dt3 = t3 - t2;
+  const totalTime = t3;
+  
+  const v1 = dt1 > 0 ? d1 / dt1 : 0;
+  const v2 = dt2 > 0 ? d2 / dt2 : 0;
+  const v3 = dt3 > 0 ? d3 / dt3 : 0;
+  
+  const averageVelocity = totalTime > 0 ? totalDistance / totalTime : 0;
+  const averageSpeed = averageVelocity; // Unidirectional forward motion
+  
+  return {
+    student1: { dx: d1, dt: dt1, v: v1 },
+    student2: { dx: d2, dt: dt2, v: v2 },
+    student3: { dx: d3, dt: dt3, v: v3 },
+    total: {
+      dx: totalDistance,
+      distance: totalDistance,
+      dt: totalTime,
+      averageVelocity,
+      averageSpeed
+    }
+  };
+}
+
+/**
+ * Analytical solution for Part 5 Challenge (Question 11):
+ * Given v1 and v2, find the required speed for Student 3 (v3) to achieve a target average velocity vTarget for the total relay distance.
+ * 
+ * Formula:
+ * totalTimeNeeded = dTotal / vTarget
+ * dt1 = d1 / v1
+ * dt2 = d2 / v2
+ * dt3Needed = totalTimeNeeded - dt1 - dt2
+ * v3Required = d3 / dt3Needed
+ * 
+ * @param {number} vTarget - Target average velocity (e.g. 6.0 m/s)
+ * @param {number} v1 - Velocity of Student 1 (m/s)
+ * @param {number} v2 - Velocity of Student 2 (m/s)
+ * @param {object} config - Relay track coordinates
+ * @returns {object} { possible: boolean, v3Required: number, dt3Needed: number, totalTimeNeeded: number, reason: string }
+ */
+export function calculateRequiredSegmentSpeed(vTarget, v1, v2, config = RELAY_CONFIG) {
+  const d1 = config.x1 - config.x0; // 8m
+  const d2 = config.x2 - config.x1; // 4m
+  const d3 = config.x3 - config.x2; // 4m
+  const dTotal = config.x3 - config.x0; // 16m
+  
+  const totalTimeNeeded = dTotal / vTarget;
+  const dt1 = d1 / v1;
+  const dt2 = d2 / v2;
+  const timeUsed = dt1 + dt2;
+  const dt3Needed = totalTimeNeeded - timeUsed;
+  
+  if (dt3Needed <= 0) {
+    return {
+      possible: false,
+      v3Required: Infinity,
+      dt3Needed,
+      totalTimeNeeded,
+      reason: `Students 1 and 2 already took ${timeUsed.toFixed(2)}s, which exceeds the total allowed time of ${totalTimeNeeded.toFixed(2)}s for an average velocity of ${vTarget} m/s!`
+    };
+  }
+  
+  const v3Required = d3 / dt3Needed;
+  return {
+    possible: true,
+    v3Required,
+    dt3Needed,
+    totalTimeNeeded,
+    reason: `Student 3 must complete the 4m leg in ${dt3Needed.toFixed(2)}s at a velocity of ${v3Required.toFixed(2)} m/s.`
   };
 }

@@ -18,7 +18,7 @@
         <span class="kicker" style="color: #ffe8cc; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">The Thinking Experiment</span>
         <h1 id="mainTitle" style="color: white; margin: 0.2rem 0; font-size: clamp(1.6rem, 3vw, 2.4rem); font-family: 'IBM Plex Sans', sans-serif;">Kinematics: Constant & Average Velocity</h1>
         <p class="subtitle" style="color: #e6f6f9; margin-top: 0.2rem; font-size: 0.95rem; max-width: 90ch;">
-          Interactive modeling simulations for constant velocity particles and multi-segment average velocity Arduino car labs.
+          Interactive modeling simulations for constant velocity particles, Arduino car trips, and multi-segment human walker/relay kinematics.
         </p>
       </div>
     </header>
@@ -26,10 +26,13 @@
     <!-- Activity Mode Switcher -->
     <nav class="activity-nav" aria-label="Activity Mode Switcher">
       <button class="activity-tab-btn active" id="btnActConstant" data-act="constant">
-        🚗 Constant Velocity (Two Cars Lab)
+        🚗 Constant Velocity (Two Cars)
       </button>
       <button class="activity-tab-btn" id="btnActAverage" data-act="average">
-        ⚡ Average Velocity (Arduino Cars Lab)
+        ⚡ Arduino Cars (Piecewise Trips)
+      </button>
+      <button class="activity-tab-btn" id="btnActWalker" data-act="walker">
+        🚶 Walker & Relay Activities
       </button>
     </nav>
 
@@ -507,42 +510,36 @@
         <!-- Calculated Kinematics Metrics Summary Cards -->
         <h3 style="font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem;">Trip Kinematic Calculations</h3>
         <div class="metric-grid">
-          <!-- Segment 1 -->
           <div class="metric-card">
             <div class="title">Segment 1 Velocity (<i>v</i>₁)</div>
             <div class="val" id="metricV1" style="color: #0f7e9b;">—</div>
             <div class="sub" id="metricV1Sub">Δ<i>x</i>₁ / Δ<i>t</i>₁</div>
           </div>
 
-          <!-- Segment 2 -->
           <div class="metric-card">
             <div class="title">Segment 2 Velocity (<i>v</i>₂)</div>
             <div class="val" id="metricV2" style="color: #0f7e9b;">—</div>
             <div class="sub" id="metricV2Sub">Δ<i>x</i>₂ / Δ<i>t</i>₂</div>
           </div>
 
-          <!-- Total Displacement -->
           <div class="metric-card accent">
             <div class="title">Total Displacement (Δ<i>x</i>)</div>
             <div class="val" id="metricDx" style="color: #d67b19;">—</div>
             <div class="sub"><i>X</i><sub>f</sub> − <i>X</i><sub>0</sub></div>
           </div>
 
-          <!-- Total Distance -->
           <div class="metric-card accent">
             <div class="title">Total Distance (<i>d</i>)</div>
             <div class="val" id="metricDist" style="color: #d67b19;">—</div>
             <div class="sub">|Δ<i>x</i>₁| + |Δ<i>x</i>₂|</div>
           </div>
 
-          <!-- Average Velocity -->
           <div class="metric-card highlight">
             <div class="title">Average Velocity (<i>v</i><sub>avg</sub>)</div>
             <div class="val" id="metricVavg" style="color: #1a7f4e;">—</div>
             <div class="sub">Total Δ<i>x</i> / Total Δ<i>t</i></div>
           </div>
 
-          <!-- Average Speed -->
           <div class="metric-card highlight">
             <div class="title">Average Speed</div>
             <div class="val" id="metricSpeedAvg" style="color: #1a7f4e;">—</div>
@@ -598,6 +595,455 @@
           </ul>
         </details>
       </section>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- ACTIVITY 3: WALKER & RELAY ACTIVITIES (HUMAN KINEMATICS)                  -->
+    <!-- ========================================================================= -->
+    <div id="activity3Container" style="display: none;">
+      <!-- Sub-activity Pill Selector -->
+      <div class="sub-nav" style="margin-top: 0.8rem;">
+        <button class="sub-tab-btn active" id="btnSubRoundTrip" data-sub="roundtrip">
+          🔄 Part 1 & 2: Round Trip Walk
+        </button>
+        <button class="sub-tab-btn" id="btnSubRelay" data-sub="relay">
+          🏃 Part 3 & 4: 3-Person Relay
+        </button>
+        <button class="sub-tab-btn" id="btnSubChallenge" data-sub="challenge">
+          🎯 Part 5: Relay Speed Challenge
+        </button>
+      </div>
+
+      <!-- ==================== SUB-TAB 1: ROUND TRIP ==================== -->
+      <div id="walkerRoundTripSection">
+        <div class="panel" style="padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: #a9c4cf;">
+          <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <label for="rtTurnDist" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Turnaround Point (<i>X</i><sub>turn</sub>):</label>
+              <input type="number" id="rtTurnDist" value="10" min="4" max="20" step="1" style="width: 70px; padding: 0.35rem 0.6rem;">
+              <span style="font-weight: 600; color: var(--ink);">meters</span>
+            </div>
+
+            <div style="height: 24px; width: 2px; background: #c8dbe3;" class="divider-line"></div>
+
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <label for="rtTimingMode" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
+              <select id="rtTimingMode" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
+                <option value="auto" selected>🤖 Auto (Sensor Clock - Exact)</option>
+                <option value="manual">⏱️ Manual Dual Timers (Student 1 & 2 Stopwatches)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="font-size: 0.88rem; color: #0b5f77; font-weight: 600; background: #eef8fb; padding: 0.4rem 0.8rem; border-radius: 6px;">
+            Student 3 moves quickly to turnaround (<span id="rtTurnDisplay">10</span> m), then returns slowly to start (0 m).
+          </div>
+        </div>
+
+        <!-- Simulation Card -->
+        <section class="panel full" style="margin-top: 0.8rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.6rem;">
+            <h2 style="font-size: 1.2rem; color: var(--ink); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+              <span>🚶</span> Round Trip Walking Track (Meters)
+            </h2>
+
+            <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+              <div class="button-row" style="margin: 0; gap: 0.4rem;">
+                <button id="btnRunRoundTrip" class="primary" style="background: linear-gradient(160deg, #0f7e9b, #095f76); border-color: #074758;">▶ Start Round Trip</button>
+                <button id="btnResetRoundTrip" class="ghost" style="background: #f1f3f5; color: #495057; border-color: #ced4da;">↺ Reset Walk</button>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.3rem;">
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Speed:</span>
+                <div style="display: flex; background: #e9ecef; border-radius: 8px; padding: 2px;">
+                  <button class="walker-speed-btn" data-speed="0.5" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">0.5x</button>
+                  <button class="walker-speed-btn active" data-speed="1.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">1x</button>
+                  <button class="walker-speed-btn" data-speed="2.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">2x</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual Timing Actions for Round Trip -->
+          <div id="rtManualActionsBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
+            <div>
+              <strong style="color: #d9480f;">⏱️ Student Timers Active:</strong>
+              <span style="font-size: 0.88rem; color: #495057; margin-left: 0.4rem;">Student 2 stops at turnaround (<span id="rtBannerTurnPos">10</span> m); Student 1 stops when walker returns to 0 m!</span>
+            </div>
+            <div style="display: flex; gap: 0.4rem;">
+              <button id="btnRtTimer2Stop" class="manual-split-btn" style="background: #d67b19;" disabled>⏱️ Stop Timer 2 (Turnaround)</button>
+              <button id="btnRtTimer1Stop" class="manual-split-btn" style="background: #c92a2a;" disabled>⏱️ Stop Timer 1 (Return to Start)</button>
+            </div>
+          </div>
+
+          <!-- Walker Canvas -->
+          <canvas id="walkerCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Walking track simulation in meters"></canvas>
+
+          <!-- Dual Timers Display -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; flex-wrap: wrap; gap: 0.8rem;">
+            <div id="rtStatusIndicator" class="status-badge" style="background: #eef8fb; border: 1px solid #b8d1db; color: var(--accent-strong); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+              Ready — click Start Round Trip
+            </div>
+
+            <div class="multi-timer-grid">
+              <div class="timer-box">
+                <div class="timer-label">Timer 2 (Turnaround)</div>
+                <div class="timer-digit" id="rtTimer2Display">0.00 s</div>
+              </div>
+              <div class="timer-box" style="border-left: 3px solid var(--warm);">
+                <div class="timer-label">Timer 1 (Total Walk)</div>
+                <div class="timer-digit" id="rtTimer1Display">0.00 s</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Round Trip Data & Analysis Section -->
+        <section class="panel full" style="margin-top: 0.8rem;">
+          <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📋</span> Part 2: Round Trip Data & Calculations
+          </h2>
+
+          <div class="table-wrap" style="border-radius: 8px; margin-bottom: 1rem;">
+            <table>
+              <thead>
+                <tr style="background: #0f7e9b; color: white;">
+                  <th style="color: white;">Checkpoint</th>
+                  <th style="color: white;">Position <i>x</i> (m)</th>
+                  <th style="color: white;">Cumulative Clock Time <i>t</i> (s)</th>
+                  <th style="color: white;">Recorded By</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Start (<i>x</i><sub>0</sub>)</strong></td>
+                  <td>0.0 m</td>
+                  <td>0.00 s</td>
+                  <td>Both Timers Start</td>
+                </tr>
+                <tr>
+                  <td><strong>Turnaround (<i>x</i><sub>turn</sub>)</strong></td>
+                  <td id="rtTableXTurn">10.0 m</td>
+                  <td id="rtTableTTurn">—</td>
+                  <td>Student 2 (Timer 2)</td>
+                </tr>
+                <tr>
+                  <td><strong>Return to Start (<i>x</i><sub>f</sub>)</strong></td>
+                  <td>0.0 m</td>
+                  <td id="rtTableTFinal">—</td>
+                  <td>Student 1 (Timer 1)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem;">Kinematic Quantities (Questions 4, 5, 6)</h3>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="title">Segment 1 Velocity (<i>v</i>₁)</div>
+              <div class="val" id="rtMetricV1" style="color: #0f7e9b;">—</div>
+              <div class="sub">Outbound (+<i>x</i> direction)</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="title">Segment 2 Velocity (<i>v</i>₂)</div>
+              <div class="val" id="rtMetricV2" style="color: #0f7e9b;">—</div>
+              <div class="sub">Inbound (−<i>x</i> direction)</div>
+            </div>
+
+            <div class="metric-card accent">
+              <div class="title">Total Displacement (Δ<i>x</i>)</div>
+              <div class="val" id="rtMetricDx" style="color: #d67b19;">—</div>
+              <div class="sub"><i>x</i><sub>f</sub> − <i>x</i><sub>0</sub> = 0 m</div>
+            </div>
+
+            <div class="metric-card accent">
+              <div class="title">Total Distance (<i>d</i>)</div>
+              <div class="val" id="rtMetricDist" style="color: #d67b19;">—</div>
+              <div class="sub">2 × <i>x</i><sub>turn</sub></div>
+            </div>
+
+            <div class="metric-card highlight">
+              <div class="title">Average Velocity (<i>v</i><sub>avg</sub>)</div>
+              <div class="val" id="rtMetricVavg" style="color: #1a7f4e;">—</div>
+              <div class="sub">Total Δ<i>x</i> / Total Δ<i>t</i> = 0 m/s</div>
+            </div>
+
+            <div class="metric-card highlight">
+              <div class="title">Average Speed</div>
+              <div class="val" id="rtMetricSpeedAvg" style="color: #1a7f4e;">—</div>
+              <div class="sub">Total Distance / Total Δ<i>t</i></div>
+            </div>
+          </div>
+
+          <div id="rtMisconceptionCallout" class="alert-box warning" style="display: none; margin-top: 1rem;">
+            <strong>💡 Question 5 Analysis: Arithmetic Average vs. Average Velocity</strong><br>
+            <span id="rtMisconceptionText">Notice that (<i>v</i>₁ + <i>v</i>₂) / 2 is NOT zero, whereas the true average velocity is 0 m/s. Average velocity is total displacement divided by total time!</span>
+          </div>
+        </section>
+
+        <!-- Round Trip Graph -->
+        <section class="panel full" style="margin-top: 0.8rem;">
+          <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📈</span> Question 3: Position vs. Time Graph — Round Trip
+          </h2>
+          <canvas id="rtGraphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
+        </section>
+
+        <!-- Round Trip Guided Inquiry (PDF Questions 4, 5, 6) -->
+        <section class="panel full" style="margin-top: 0.8rem;">
+          <h2 style="font-size: 1.15rem; color: var(--ink); margin-bottom: 0.6rem;">Part 2: Round Trip Analysis Questions</h2>
+          <details open>
+            <summary>Question 4: Segment Velocities & Overall Average Velocity</summary>
+            <p><strong>Equation:</strong> <span class="math-expr"><i>v</i> = Δ<i>x</i> / Δ<i>t</i></span></p>
+            <ul>
+              <li><strong>Segment 1 (Outbound):</strong> Moves in positive direction (<span class="math-expr">Δ<i>x</i>₁ &gt; 0</span>), so velocity <span class="math-expr"><i>v</i>₁ &gt; 0</span>.</li>
+              <li><strong>Segment 2 (Inbound):</strong> Moves in negative direction (<span class="math-expr">Δ<i>x</i>₂ &lt; 0</span>), so velocity <span class="math-expr"><i>v</i>₂ &lt; 0</span>.</li>
+              <li><strong>Total Trip:</strong> Since the walker returns to the exact starting location, <span class="math-expr"><i>x</i><sub>f</sub> = <i>x</i><sub>0</sub> = 0 m</span>, making <span class="math-expr">Δ<i>x</i> = 0 m</span> and <span class="math-expr"><i>v</i><sub>avg</sub> = 0 m/s</span>!</li>
+            </ul>
+          </details>
+          <details>
+            <summary>Question 5: Arithmetic Average vs. Average Velocity</summary>
+            <p><strong>Question:</strong> Is the arithmetic average <span class="math-expr">(<i>v</i>₁ + <i>v</i>₂) / 2</span> the same as the average velocity?</p>
+            <p><strong>Explanation:</strong> No. The arithmetic average simply adds the numbers and divides by 2. It does not account for the fact that the walker spent different amounts of time moving in each direction. Average velocity is strictly defined as <span class="math-expr">Total Displacement / Total Time</span>.</p>
+          </details>
+          <details>
+            <summary>Question 6: Average Speed vs. Average Velocity</summary>
+            <p><strong>Question:</strong> Is average speed the same as average velocity? Explain using the difference between total distance and displacement.</p>
+            <p><strong>Explanation:</strong> No. Displacement is a vector that accounts for direction (and canceled to 0 m), whereas distance is a scalar representing the total ground covered (<span class="math-expr">20 m</span>). Thus, average speed is positive (<span class="math-expr">&gt; 0 m/s</span>) while average velocity is zero (<span class="math-expr">0 m/s</span>).</p>
+          </details>
+        </section>
+      </div>
+
+      <!-- ==================== SUB-TAB 2: 3-PERSON RELAY ==================== -->
+      <div id="walkerRelaySection" style="display: none;">
+        <div class="panel" style="padding: 0.8rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-color: #a9c4cf;">
+          <div style="font-size: 0.9rem; color: #0b5f77; font-weight: 600;">
+            🏃 <strong>Relay Setup:</strong> Student 1 (0 → 8 m, fast) · Student 2 (8 → 12 m, medium) · Student 3 (12 → 16 m, slow). Total distance = 16 m.
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <label for="relayTimingMode" style="font-weight: 700; color: var(--ink); flex-direction: row; align-items: center; gap: 0.4rem;">Timing Mode:</label>
+            <select id="relayTimingMode" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid #a9c4cf; font-weight: 600; background: #f9fdff; color: var(--ink);">
+              <option value="auto" selected>🤖 Auto (Sensor Ticks - Exact)</option>
+              <option value="manual">⏱️ Manual Cumulative Timers (Stopwatches 1, 2, 3)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Relay Simulation Card -->
+        <section class="panel full" style="margin-top: 0.8rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.6rem;">
+            <h2 style="font-size: 1.2rem; color: var(--ink); display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+              <span>🏃‍♂️</span> 3-Person Relay Simulation Track (16 Meters)
+            </h2>
+
+            <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+              <div class="button-row" style="margin: 0; gap: 0.4rem;">
+                <button id="btnRunRelay" class="primary" style="background: linear-gradient(160deg, #0f7e9b, #095f76); border-color: #074758;">▶ Start Relay Race</button>
+                <button id="btnResetRelay" class="ghost" style="background: #f1f3f5; color: #495057; border-color: #ced4da;">↺ Reset Relay</button>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.3rem;">
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--muted);">Speed:</span>
+                <div style="display: flex; background: #e9ecef; border-radius: 8px; padding: 2px;">
+                  <button class="relay-speed-btn" data-speed="0.5" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">0.5x</button>
+                  <button class="relay-speed-btn active" data-speed="1.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">1x</button>
+                  <button class="relay-speed-btn" data-speed="2.0" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">2x</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual Relay Action Banner -->
+          <div id="relayManualBanner" style="display: none; background: #fff4e6; border: 1px solid #ffd8a8; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.8rem; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
+            <div>
+              <strong style="color: #d9480f;">⏱️ 3 Cumulative Timers:</strong>
+              <span style="font-size: 0.88rem; color: #495057; margin-left: 0.4rem;">Stop Timer 1 at 8 m handoff, Timer 2 at 12 m handoff, and Timer 3 at 16 m finish line!</span>
+            </div>
+            <div style="display: flex; gap: 0.4rem;">
+              <button id="btnRelayTimer1Stop" class="manual-split-btn" style="background: #1c7ed6;" disabled>⏱️ Stop Timer 1 (8m)</button>
+              <button id="btnRelayTimer2Stop" class="manual-split-btn" style="background: #d67b19;" disabled>⏱️ Stop Timer 2 (12m)</button>
+              <button id="btnRelayTimer3Stop" class="manual-split-btn" style="background: #1a7f4e;" disabled>⏱️ Stop Timer 3 (16m)</button>
+            </div>
+          </div>
+
+          <!-- Relay Canvas -->
+          <canvas id="relayCanvas" class="sim-canvas" width="980" height="260" role="img" aria-label="Relay race simulation track in meters"></canvas>
+
+          <!-- 3 Cumulative Timers Display -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.8rem; flex-wrap: wrap; gap: 0.8rem;">
+            <div id="relayStatusIndicator" class="status-badge" style="background: #eef8fb; border: 1px solid #b8d1db; color: var(--accent-strong); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+              Ready — click Start Relay Race
+            </div>
+
+            <div class="multi-timer-grid">
+              <div class="timer-box">
+                <div class="timer-label">Timer 1 (8m Handoff)</div>
+                <div class="timer-digit" id="relayTimer1Display">0.00 s</div>
+              </div>
+              <div class="timer-box">
+                <div class="timer-label">Timer 2 (12m Handoff)</div>
+                <div class="timer-digit" id="relayTimer2Display">0.00 s</div>
+              </div>
+              <div class="timer-box" style="border-left: 3px solid var(--ok);">
+                <div class="timer-label">Timer 3 (16m Finish)</div>
+                <div class="timer-digit" id="relayTimer3Display">0.00 s</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Relay Data Tables & Calculations Section -->
+        <section class="panel full" style="margin-top: 0.8rem;">
+          <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📋</span> Part 4: Relay Data & Segment Calculations
+          </h2>
+
+          <div class="table-wrap" style="border-radius: 8px; margin-bottom: 1rem;">
+            <table>
+              <thead>
+                <tr style="background: #0f7e9b; color: white;">
+                  <th style="color: white;">Runner & Segment</th>
+                  <th style="color: white;">Distance (Δ<i>x</i>)</th>
+                  <th style="color: white;">Cumulative Clock Time (<i>t</i>)</th>
+                  <th style="color: white;">Segment Time (Δ<i>t</i>)</th>
+                  <th style="color: white;">Segment Velocity (<i>v</i>)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Student 1 (0 m → 8 m)</strong></td>
+                  <td>8.0 m</td>
+                  <td id="relayT1Cell">—</td>
+                  <td id="relayDt1Cell">—</td>
+                  <td id="relayV1Cell" style="font-weight: 700; color: #0f7e9b;">—</td>
+                </tr>
+                <tr>
+                  <td><strong>Student 2 (8 m → 12 m)</strong></td>
+                  <td>4.0 m</td>
+                  <td id="relayT2Cell">—</td>
+                  <td id="relayDt2Cell">—</td>
+                  <td id="relayV2Cell" style="font-weight: 700; color: #0f7e9b;">—</td>
+                </tr>
+                <tr>
+                  <td><strong>Student 3 (12 m → 16 m)</strong></td>
+                  <td>4.0 m</td>
+                  <td id="relayT3Cell">—</td>
+                  <td id="relayDt3Cell">—</td>
+                  <td id="relayV3Cell" style="font-weight: 700; color: #0f7e9b;">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="font-size: 1rem; color: var(--ink); margin-bottom: 0.4rem;">Team Overall Kinematics (Question 10)</h3>
+          <div class="metric-grid">
+            <div class="metric-card accent">
+              <div class="title">Total Relay Distance</div>
+              <div class="val" style="color: #d67b19;">16.0 m</div>
+              <div class="sub">8m + 4m + 4m</div>
+            </div>
+
+            <div class="metric-card accent">
+              <div class="title">Total Relay Time</div>
+              <div class="val" id="relayTotalTimeMetric" style="color: #d67b19;">—</div>
+              <div class="sub">Timer 3 Reading (<i>t</i>₃)</div>
+            </div>
+
+            <div class="metric-card highlight">
+              <div class="title">Team Average Velocity</div>
+              <div class="val" id="relayVavgMetric" style="color: #1a7f4e;">—</div>
+              <div class="sub">16 m / <i>t</i>₃</div>
+            </div>
+
+            <div class="metric-card highlight">
+              <div class="title">Team Average Speed</div>
+              <div class="val" id="relaySpeedMetric" style="color: #1a7f4e;">—</div>
+              <div class="sub">Equal to Average Velocity (forward path)</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Relay Graph Card -->
+        <section class="panel full" style="margin-top: 0.8rem;">
+          <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>📈</span> Question 8: Position vs. Time Graph — Complete Relay
+          </h2>
+          <canvas id="relayGraphCanvas" class="sim-canvas" width="980" height="360" style="aspect-ratio: 980/360; background: #ffffff; border: 1px solid #c8dbe3;"></canvas>
+        </section>
+
+        <!-- Relay CER Accordions -->
+        <section class="panel full" style="margin-top: 0.8rem;">
+          <h2 style="font-size: 1.15rem; color: var(--ink); margin-bottom: 0.6rem;">Part 4: Relay Analysis Questions</h2>
+          <details open>
+            <summary>Question 9: Segment Time vs. Cumulative Time</summary>
+            <p><strong>Note:</strong> Timers are cumulative. To find the time each individual student took:</p>
+            <ul>
+              <li><strong>Student 1:</strong> <span class="math-expr">Δ<i>t</i>₁ = <i>t</i>₁</span></li>
+              <li><strong>Student 2:</strong> <span class="math-expr">Δ<i>t</i>₂ = <i>t</i>₂ − <i>t</i>₁</span></li>
+              <li><strong>Student 3:</strong> <span class="math-expr">Δ<i>t</i>₃ = <i>t</i>₃ − <i>t</i>₂</span></li>
+            </ul>
+          </details>
+          <details>
+            <summary>Question 10: Are Average Velocity and Average Speed Equal in the Relay?</summary>
+            <p><strong>Explanation:</strong> Yes! Because all three runners moved in the same single direction forward (+<i>x</i> direction without turning around), total displacement equals total distance (<span class="math-expr">Δ<i>x</i> = <i>d</i> = 16 m</span>). Therefore, <span class="math-expr"><i>v</i><sub>avg</sub> = Speed<sub>avg</sub></span>.</p>
+          </details>
+        </section>
+      </div>
+
+      <!-- ==================== SUB-TAB 3: PART 5 CHALLENGE ==================== -->
+      <div id="walkerChallengeSection" style="display: none;">
+        <section class="panel full">
+          <h2 style="font-size: 1.2rem; color: var(--ink); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🎯</span> Part 5: Target Average Velocity Challenge (Question 11)
+          </h2>
+
+          <div class="alert-box info" style="margin-bottom: 1rem;">
+            <strong>Challenge Prompt:</strong> Suppose your team wants an average velocity of <strong>6.0 m/s</strong> for the entire 16 m relay.
+            Keep the velocities found for Students 1 and 2, and determine how fast Student 3 must move for the team's average velocity to reach the target!
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div style="background: #f8fcfe; padding: 0.8rem; border-radius: 8px; border: 1px solid #c8dbe3;">
+              <label style="font-weight: bold; color: var(--ink);">Student 1 Velocity (<i>v</i>₁):</label>
+              <input type="number" id="challV1" value="4.0" step="0.1" style="width: 100%; margin-top: 0.3rem;">
+              <span class="hint">Leg 1: 0 to 8 m (8m)</span>
+            </div>
+
+            <div style="background: #f8fcfe; padding: 0.8rem; border-radius: 8px; border: 1px solid #c8dbe3;">
+              <label style="font-weight: bold; color: var(--ink);">Student 2 Velocity (<i>v</i>₂):</label>
+              <input type="number" id="challV2" value="2.0" step="0.1" style="width: 100%; margin-top: 0.3rem;">
+              <span class="hint">Leg 2: 8 to 12 m (4m)</span>
+            </div>
+
+            <div style="background: #f8fcfe; padding: 0.8rem; border-radius: 8px; border: 1px solid #c8dbe3;">
+              <label style="font-weight: bold; color: var(--ink);">Target Team <i>v</i><sub>avg</sub>:</label>
+              <input type="number" id="challVTarget" value="6.0" step="0.1" style="width: 100%; margin-top: 0.3rem;">
+              <span class="hint">Total distance = 16 m</span>
+            </div>
+          </div>
+
+          <!-- Student Solution Input -->
+          <div style="background: #fff8eb; padding: 1rem; border-radius: 8px; border: 1px solid #fcd34d; margin-bottom: 1rem;">
+            <h3 style="font-size: 1rem; color: #b1620e; margin-bottom: 0.5rem;">Your Derived Calculation for Student 3:</h3>
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+              <label style="flex-direction: row; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--ink);">
+                Required Speed for Student 3 (<i>v</i>₃):
+              </label>
+              <input type="number" id="challV3Input" placeholder="e.g. 10.0" step="0.1" style="width: 120px; padding: 0.4rem 0.6rem;">
+              <span style="font-weight: 600; color: var(--ink);">m/s</span>
+              <button id="btnTestChallenge" class="primary" style="background: linear-gradient(160deg, #d67b19, #b1620e); border-color: #9c5307;">Test Calculation & Simulate Relay</button>
+            </div>
+
+            <div id="challFeedback" style="display: none; margin-top: 0.8rem; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.9rem;"></div>
+          </div>
+
+          <!-- Challenge Simulation Canvas -->
+          <canvas id="challCanvas" class="sim-canvas" width="980" height="220" role="img" aria-label="Challenge simulation track"></canvas>
+
+          <div id="challOutcomeBox" class="alert-box" style="display: none; margin-top: 0.8rem;"></div>
+        </section>
+      </div>
     </div>
 
     <!-- Footer -->

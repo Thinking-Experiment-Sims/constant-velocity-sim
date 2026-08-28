@@ -13,6 +13,13 @@ import {
   calculateTripDuration,
   calculatePiecewisePosition,
   calculateAverageVelocityMetrics,
+  calculateWalkerRoundTrip,
+  calculateRoundTripMetrics,
+  calculateRelayPosition,
+  calculateRelayMetrics,
+  calculateRequiredSegmentSpeed,
+  RELAY_CONFIG,
+  ROUND_TRIP_CONFIG,
   TRACK_MIN,
   TRACK_MAX
 } from './constantVelocityPhysics.js';
@@ -21,18 +28,18 @@ import {
 // APPLICATION STATE
 // =========================================================================
 let state = {
-  currentActivity: 'constant', // 'constant' | 'average'
+  currentActivity: 'constant', // 'constant' | 'average' | 'walker'
 
   // Activity 1: Constant Velocity State
-  activePreset: '1',      // '1'..'6' or 'sandbox'
-  timingMode: 'auto',     // 'auto' | 'manual'
-  activeCarToRun: 'none', // 'red' | 'blue' | 'both' | 'none'
+  activePreset: '1',
+  timingMode: 'auto',
+  activeCarToRun: 'none',
   isRunning: false,
-  elapsedTime: 0.0,       // in seconds
-  lastTimestamp: 0.0,     // in milliseconds
+  elapsedTime: 0.0,
+  lastTimestamp: 0.0,
   speedMultiplier: 1.0,
   hasMet: false,
-  meetingPoint: null,     // { time, position } theoretical
+  meetingPoint: null,
   
   carRed: {
     color: 'red',
@@ -42,7 +49,7 @@ let state = {
     enabled: true,
     crossedSensors: new Set(),
     wheelAngle: 0.0,
-    dataLogs: [] // Array of { t, x } points
+    dataLogs: []
   },
   carBlue: {
     color: 'blue',
@@ -52,7 +59,7 @@ let state = {
     enabled: true,
     crossedSensors: new Set(),
     wheelAngle: 0.0,
-    dataLogs: [] // Array of { t, x } points
+    dataLogs: []
   },
   
   isFitToggled: false,
@@ -64,10 +71,10 @@ let state = {
   splitFlags: [],
 
   // Activity 2: Average Velocity (Arduino Car) State
-  avgGroup: 'A',          // 'A'..'F' | 'custom'
-  avgTrial: 'trial1',     // 'trial1' | 'trial2'
-  avgTripNum: 1,          // 1..8
-  avgTimingMode: 'auto',  // 'auto' | 'manual'
+  avgGroup: 'A',
+  avgTrial: 'trial1',
+  avgTripNum: 1,
+  avgTimingMode: 'auto',
   avgIsRunning: false,
   avgElapsedTime: 0.0,
   avgLastTimestamp: 0.0,
@@ -89,6 +96,67 @@ let state = {
     t0: false,
     tTape: false,
     tf: false
+  },
+
+  // Activity 3: Walker & Relay Activities State
+  walkerSubMode: 'roundtrip', // 'roundtrip' | 'relay' | 'challenge'
+  
+  // Part 1 & 2: Round Trip
+  rtTurnDist: 10.0,
+  rtTimingMode: 'auto',
+  rtIsRunning: false,
+  rtElapsedTime: 0.0,
+  rtLastTimestamp: 0.0,
+  rtSpeedMultiplier: 1.0,
+  rtWalker: {
+    x: 0.0,
+    v: 4.0,
+    segment: 1,
+    isFinished: false,
+    stepPhase: 0.0
+  },
+  rtLoggedTimes: {
+    t0: 0.0,
+    tTurn: null,
+    tFinal: null
+  },
+  rtAutoLogged: {
+    tTurn: false,
+    tFinal: false
+  },
+
+  // Part 3 & 4: Relay
+  relayTimingMode: 'auto',
+  relayIsRunning: false,
+  relayElapsedTime: 0.0,
+  relayLastTimestamp: 0.0,
+  relaySpeedMultiplier: 1.0,
+  relayRunners: {
+    x: 0.0,
+    activeStudent: 1,
+    isFinished: false,
+    stepPhase: 0.0
+  },
+  relayLoggedTimes: {
+    t1: null,
+    t2: null,
+    t3: null
+  },
+  relayAutoLogged: {
+    t1: false,
+    t2: false,
+    t3: false
+  },
+
+  // Part 5: Challenge
+  challIsRunning: false,
+  challElapsedTime: 0.0,
+  challLastTimestamp: 0.0,
+  challRunner: {
+    x: 0.0,
+    activeStudent: 1,
+    isFinished: false,
+    stepPhase: 0.0
   }
 };
 
@@ -105,20 +173,36 @@ const avgSimCtx = avgSimCanvas.getContext('2d');
 const avgGraphCanvas = document.getElementById('avgGraphCanvas');
 const avgGraphCtx = avgGraphCanvas.getContext('2d');
 
+const walkerCanvas = document.getElementById('walkerCanvas');
+const walkerCtx = walkerCanvas.getContext('2d');
+const rtGraphCanvas = document.getElementById('rtGraphCanvas');
+const rtGraphCtx = rtGraphCanvas.getContext('2d');
+
+const relayCanvas = document.getElementById('relayCanvas');
+const relayCtx = relayCanvas.getContext('2d');
+const relayGraphCanvas = document.getElementById('relayGraphCanvas');
+const relayGraphCtx = relayGraphCanvas.getContext('2d');
+
+const challCanvas = document.getElementById('challCanvas');
+const challCtx = challCanvas.getContext('2d');
+
 const SIM_WIDTH = simCanvas.width;
 const SIM_HEIGHT = simCanvas.height;
 const GRAPH_WIDTH = graphCanvas.width;
 const GRAPH_HEIGHT = graphCanvas.height;
 
-const TRACK_PADDING = 50; // px
-const TRACK_Y = 110;      // Y center of central rail
-const CAR_RED_Y = 70;     // Y center for Red Car (Top Lane)
-const CAR_BLUE_Y = 150;   // Y center for Blue Car (Bottom Lane)
-const RULER_Y = 215;      // Y center of ruler tape
+const TRACK_PADDING = 50;
+const TRACK_Y = 110;
+const CAR_RED_Y = 70;
+const CAR_BLUE_Y = 150;
+const RULER_Y = 215;
 const RULER_HEIGHT = 42;
 
 const ScaleFactor = (SIM_WIDTH - 2 * TRACK_PADDING) / TRACK_MAX;
 const MARKS = [0, 30, 60, 90, 120, 150, 180, 210, 240];
+
+const METER_MAX = 20.0;
+const MeterScaleFactor = (SIM_WIDTH - 2 * TRACK_PADDING) / METER_MAX;
 
 // =========================================================================
 // DOM ELEMENTS
@@ -126,8 +210,10 @@ const MARKS = [0, 30, 60, 90, 120, 150, 180, 210, 240];
 // Navigation
 const btnActConstant = document.getElementById('btnActConstant');
 const btnActAverage = document.getElementById('btnActAverage');
+const btnActWalker = document.getElementById('btnActWalker');
 const activity1Container = document.getElementById('activity1Container');
 const activity2Container = document.getElementById('activity2Container');
+const activity3Container = document.getElementById('activity3Container');
 
 // Activity 1 Elements
 const groupSelect = document.getElementById('groupSelect');
@@ -185,7 +271,7 @@ const tabTheoryBtn = document.getElementById('tabTheoryBtn');
 const panelGuided = document.getElementById('panelGuided');
 const panelTheory = document.getElementById('panelTheory');
 
-// Activity 2 (Average Velocity) Elements
+// Activity 2 Elements
 const avgGroupSelect = document.getElementById('avgGroupSelect');
 const avgTrialSelect = document.getElementById('avgTrialSelect');
 const customTripWrapper = document.getElementById('customTripWrapper');
@@ -216,17 +302,83 @@ const metricSpeedAvg = document.getElementById('metricSpeedAvg');
 const misconceptionCallout = document.getElementById('misconceptionCallout');
 const misconceptionText = document.getElementById('misconceptionText');
 
+// Activity 3: Walker & Relay Elements
+const btnSubRoundTrip = document.getElementById('btnSubRoundTrip');
+const btnSubRelay = document.getElementById('btnSubRelay');
+const btnSubChallenge = document.getElementById('btnSubChallenge');
+const walkerRoundTripSection = document.getElementById('walkerRoundTripSection');
+const walkerRelaySection = document.getElementById('walkerRelaySection');
+const walkerChallengeSection = document.getElementById('walkerChallengeSection');
+
+const rtTurnDistInput = document.getElementById('rtTurnDist');
+const rtTurnDisplay = document.getElementById('rtTurnDisplay');
+const rtTimingMode = document.getElementById('rtTimingMode');
+const btnRunRoundTrip = document.getElementById('btnRunRoundTrip');
+const btnResetRoundTrip = document.getElementById('btnResetRoundTrip');
+const rtManualActionsBanner = document.getElementById('rtManualActionsBanner');
+const rtBannerTurnPos = document.getElementById('rtBannerTurnPos');
+const btnRtTimer2Stop = document.getElementById('btnRtTimer2Stop');
+const btnRtTimer1Stop = document.getElementById('btnRtTimer1Stop');
+const rtStatusIndicator = document.getElementById('rtStatusIndicator');
+const rtTimer2Display = document.getElementById('rtTimer2Display');
+const rtTimer1Display = document.getElementById('rtTimer1Display');
+const rtTableXTurn = document.getElementById('rtTableXTurn');
+const rtTableTTurn = document.getElementById('rtTableTTurn');
+const rtTableTFinal = document.getElementById('rtTableTFinal');
+const rtMetricV1 = document.getElementById('rtMetricV1');
+const rtMetricV2 = document.getElementById('rtMetricV2');
+const rtMetricDx = document.getElementById('rtMetricDx');
+const rtMetricDist = document.getElementById('rtMetricDist');
+const rtMetricVavg = document.getElementById('rtMetricVavg');
+const rtMetricSpeedAvg = document.getElementById('rtMetricSpeedAvg');
+const rtMisconceptionCallout = document.getElementById('rtMisconceptionCallout');
+const rtMisconceptionText = document.getElementById('rtMisconceptionText');
+
+const relayTimingMode = document.getElementById('relayTimingMode');
+const btnRunRelay = document.getElementById('btnRunRelay');
+const btnResetRelay = document.getElementById('btnResetRelay');
+const relayManualBanner = document.getElementById('relayManualBanner');
+const btnRelayTimer1Stop = document.getElementById('btnRelayTimer1Stop');
+const btnRelayTimer2Stop = document.getElementById('btnRelayTimer2Stop');
+const btnRelayTimer3Stop = document.getElementById('btnRelayTimer3Stop');
+const relayStatusIndicator = document.getElementById('relayStatusIndicator');
+const relayTimer1Display = document.getElementById('relayTimer1Display');
+const relayTimer2Display = document.getElementById('relayTimer2Display');
+const relayTimer3Display = document.getElementById('relayTimer3Display');
+const relayT1Cell = document.getElementById('relayT1Cell');
+const relayDt1Cell = document.getElementById('relayDt1Cell');
+const relayV1Cell = document.getElementById('relayV1Cell');
+const relayT2Cell = document.getElementById('relayT2Cell');
+const relayDt2Cell = document.getElementById('relayDt2Cell');
+const relayV2Cell = document.getElementById('relayV2Cell');
+const relayT3Cell = document.getElementById('relayT3Cell');
+const relayDt3Cell = document.getElementById('relayDt3Cell');
+const relayV3Cell = document.getElementById('relayV3Cell');
+const relayTotalTimeMetric = document.getElementById('relayTotalTimeMetric');
+const relayVavgMetric = document.getElementById('relayVavgMetric');
+const relaySpeedMetric = document.getElementById('relaySpeedMetric');
+
+const challV1Input = document.getElementById('challV1');
+const challV2Input = document.getElementById('challV2');
+const challVTargetInput = document.getElementById('challVTarget');
+const challV3Input = document.getElementById('challV3Input');
+const btnTestChallenge = document.getElementById('btnTestChallenge');
+const challFeedback = document.getElementById('challFeedback');
+const challOutcomeBox = document.getElementById('challOutcomeBox');
+
 // =========================================================================
-// INITIALIZATION & EVENT LISTENERS
+// INITIALIZATION
 // =========================================================================
 function init() {
   setupEventListeners();
   applyPreset('1');
   resetAllPositions();
   
-  // Setup Average Velocity Mode Initial State
   loadAverageVelocityTrip();
   resetAvgTrip();
+
+  resetRoundTrip();
+  resetRelay();
   
   animate(0);
 }
@@ -235,9 +387,15 @@ function setupEventListeners() {
   // Activity Switcher
   btnActConstant.addEventListener('click', () => switchActivity('constant'));
   btnActAverage.addEventListener('click', () => switchActivity('average'));
+  btnActWalker.addEventListener('click', () => switchActivity('walker'));
+
+  // Walker Sub-Mode Switcher
+  btnSubRoundTrip.addEventListener('click', () => switchWalkerSubMode('roundtrip'));
+  btnSubRelay.addEventListener('click', () => switchWalkerSubMode('relay'));
+  btnSubChallenge.addEventListener('click', () => switchWalkerSubMode('challenge'));
 
   // -------------------------------------------------------------------------
-  // Activity 1: Constant Velocity Listeners
+  // Activity 1 Listeners
   // -------------------------------------------------------------------------
   groupSelect.addEventListener('change', (e) => applyPreset(e.target.value));
 
@@ -256,7 +414,6 @@ function setupEventListeners() {
 
   btnManualSplit.addEventListener('click', recordManualSplit);
 
-  // Global Keyboard Listener for Spacebar Split
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
       if (state.currentActivity === 'constant' && state.isRunning && state.timingMode === 'manual') {
@@ -324,7 +481,6 @@ function setupEventListeners() {
     resetAllPositions();
   });
 
-  // Quick direction toggle buttons for Sandbox
   sbRedDirLeft.addEventListener('click', () => {
     const mag = Math.abs(parseFloat(sbRedVel.value)) || 30;
     sbRedVel.value = -mag;
@@ -394,15 +550,11 @@ function setupEventListeners() {
   });
 
   // -------------------------------------------------------------------------
-  // Activity 2: Average Velocity Listeners
+  // Activity 2 Listeners
   // -------------------------------------------------------------------------
   avgGroupSelect.addEventListener('change', (e) => {
     state.avgGroup = e.target.value;
-    if (state.avgGroup === 'custom') {
-      customTripWrapper.style.display = 'flex';
-    } else {
-      customTripWrapper.style.display = 'none';
-    }
+    customTripWrapper.style.display = (state.avgGroup === 'custom') ? 'flex' : 'none';
     loadAverageVelocityTrip();
     resetAvgTrip();
   });
@@ -421,11 +573,7 @@ function setupEventListeners() {
 
   avgTimingModeSelect.addEventListener('change', (e) => {
     state.avgTimingMode = e.target.value;
-    if (state.avgTimingMode === 'manual') {
-      avgManualSplitBanner.style.display = 'flex';
-    } else {
-      avgManualSplitBanner.style.display = 'none';
-    }
+    avgManualSplitBanner.style.display = (state.avgTimingMode === 'manual') ? 'flex' : 'none';
   });
 
   btnRunAvgTrip.addEventListener('click', startAvgTrip);
@@ -439,6 +587,57 @@ function setupEventListeners() {
       state.avgSpeedMultiplier = parseFloat(e.target.getAttribute('data-speed'));
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Activity 3: Walker & Relay Listeners
+  // -------------------------------------------------------------------------
+  rtTurnDistInput.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value) || 10.0;
+    state.rtTurnDist = Math.max(4.0, Math.min(18.0, val));
+    rtTurnDisplay.textContent = `${state.rtTurnDist}`;
+    rtBannerTurnPos.textContent = `${state.rtTurnDist}`;
+    rtTableXTurn.textContent = `${state.rtTurnDist.toFixed(1)} m`;
+    resetRoundTrip();
+  });
+
+  rtTimingMode.addEventListener('change', (e) => {
+    state.rtTimingMode = e.target.value;
+    rtManualActionsBanner.style.display = (state.rtTimingMode === 'manual') ? 'flex' : 'none';
+  });
+
+  btnRunRoundTrip.addEventListener('click', startRoundTrip);
+  btnResetRoundTrip.addEventListener('click', resetRoundTrip);
+  btnRtTimer2Stop.addEventListener('click', recordRtTimer2);
+  btnRtTimer1Stop.addEventListener('click', recordRtTimer1);
+
+  document.querySelectorAll('.walker-speed-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.walker-speed-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      state.rtSpeedMultiplier = parseFloat(e.target.getAttribute('data-speed'));
+    });
+  });
+
+  relayTimingMode.addEventListener('change', (e) => {
+    state.relayTimingMode = e.target.value;
+    relayManualBanner.style.display = (state.relayTimingMode === 'manual') ? 'flex' : 'none';
+  });
+
+  btnRunRelay.addEventListener('click', startRelay);
+  btnResetRelay.addEventListener('click', resetRelay);
+  btnRelayTimer1Stop.addEventListener('click', recordRelayTimer1);
+  btnRelayTimer2Stop.addEventListener('click', recordRelayTimer2);
+  btnRelayTimer3Stop.addEventListener('click', recordRelayTimer3);
+
+  document.querySelectorAll('.relay-speed-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.relay-speed-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      state.relaySpeedMultiplier = parseFloat(e.target.getAttribute('data-speed'));
+    });
+  });
+
+  btnTestChallenge.addEventListener('click', testRelayChallenge);
 }
 
 function updateSandboxDirectionButtons() {
@@ -461,20 +660,47 @@ function updateSandboxDirectionButtons() {
 
 function switchActivity(act) {
   state.currentActivity = act;
+  btnActConstant.classList.toggle('active', act === 'constant');
+  btnActAverage.classList.toggle('active', act === 'average');
+  btnActWalker.classList.toggle('active', act === 'walker');
+
+  activity1Container.style.display = (act === 'constant') ? 'block' : 'none';
+  activity2Container.style.display = (act === 'average') ? 'block' : 'none';
+  activity3Container.style.display = (act === 'walker') ? 'block' : 'none';
+
   if (act === 'constant') {
-    btnActConstant.classList.add('active');
-    btnActAverage.classList.remove('active');
-    activity1Container.style.display = 'block';
-    activity2Container.style.display = 'none';
     draw();
     drawGraph();
-  } else {
-    btnActAverage.classList.add('active');
-    btnActConstant.classList.remove('active');
-    activity1Container.style.display = 'none';
-    activity2Container.style.display = 'block';
+  } else if (act === 'average') {
     drawAvgSimulation();
     drawAvgGraph();
+  } else {
+    drawWalkerSimulation();
+    drawRtGraph();
+    drawRelaySimulation();
+    drawRelayGraph();
+    drawChallSimulation();
+  }
+}
+
+function switchWalkerSubMode(sub) {
+  state.walkerSubMode = sub;
+  btnSubRoundTrip.classList.toggle('active', sub === 'roundtrip');
+  btnSubRelay.classList.toggle('active', sub === 'relay');
+  btnSubChallenge.classList.toggle('active', sub === 'challenge');
+
+  walkerRoundTripSection.style.display = (sub === 'roundtrip') ? 'block' : 'none';
+  walkerRelaySection.style.display = (sub === 'relay') ? 'block' : 'none';
+  walkerChallengeSection.style.display = (sub === 'challenge') ? 'block' : 'none';
+
+  if (sub === 'roundtrip') {
+    drawWalkerSimulation();
+    drawRtGraph();
+  } else if (sub === 'relay') {
+    drawRelaySimulation();
+    drawRelayGraph();
+  } else {
+    drawChallSimulation();
   }
 }
 
@@ -611,7 +837,6 @@ function startSingleCar(color) {
     state.carRed.x = state.carRed.x0;
     state.carRed.crossedSensors.clear();
     state.carRed.dataLogs = [];
-    
     state.carRed.crossedSensors.add(state.carRed.x0);
     state.carRed.dataLogs.push({ t: 0.0, x: state.carRed.x0 });
     
@@ -622,7 +847,6 @@ function startSingleCar(color) {
     state.carBlue.x = state.carBlue.x0;
     state.carBlue.crossedSensors.clear();
     state.carBlue.dataLogs = [];
-    
     state.carBlue.crossedSensors.add(state.carBlue.x0);
     state.carBlue.dataLogs.push({ t: 0.0, x: state.carBlue.x0 });
     
@@ -1012,7 +1236,7 @@ function updateTablesUI() {
 }
 
 // =========================================================================
-// ACTIVITY 2: AVERAGE VELOCITY (ARDUINO CAR) METHODS
+// ACTIVITY 2: AVERAGE VELOCITY METHODS
 // =========================================================================
 function loadAverageVelocityTrip() {
   if (state.avgGroup === 'custom') {
@@ -1023,7 +1247,6 @@ function loadAverageVelocityTrip() {
     state.avgCurrentTrip = { ...grp[state.avgTrial] };
   }
 
-  // Update UI Descriptions
   avgTripInfoText.textContent = `${state.avgCurrentTrip.name}: ${state.avgCurrentTrip.description}`;
   bannerTapePos.textContent = `${state.avgCurrentTrip.xTape}`;
   
@@ -1094,7 +1317,6 @@ function startAvgTrip() {
   state.avgElapsedTime = 0.0;
   state.avgLastTimestamp = performance.now();
   
-  // Record t0 automatically or immediately
   state.avgLoggedPoints.t0 = 0.0;
   state.avgAutoTriggered.t0 = true;
   tableT0.textContent = '0.00 s';
@@ -1116,7 +1338,6 @@ function recordAvgManualSplit() {
   const trip = state.avgCurrentTrip;
   const carX = state.avgCar.x;
   
-  // Check whether we are recording tTape or tf
   if (state.avgLoggedPoints.tTape === null) {
     const diffTape = Math.abs(carX - trip.xTape);
     if (diffTape <= 35) {
@@ -1149,12 +1370,10 @@ function updateAvgPhysics(dt) {
   state.avgCar.segment = posObj.segment;
   state.avgCar.isFinished = posObj.isFinished;
   
-  // Wheel rotation
   const wheelRadius = 15;
   const deltaCm = state.avgCar.v * dt;
   state.avgCar.wheelAngle += (deltaCm * ScaleFactor) / wheelRadius;
   
-  // Auto-recording at transitions
   const { t1, totalTime } = calculateTripDuration(trip);
   
   if (state.avgTimingMode === 'auto') {
@@ -1181,7 +1400,6 @@ function updateAvgPhysics(dt) {
     btnRunAvgTrip.disabled = false;
     btnAvgManualSplit.disabled = true;
     
-    // Fill in tf if in auto mode and missing
     if (state.avgLoggedPoints.tf === null) {
       state.avgLoggedPoints.tf = state.avgElapsedTime;
       tableTf.textContent = `${state.avgElapsedTime.toFixed(2)} s`;
@@ -1220,7 +1438,6 @@ function computeAndDisplayAvgMetrics() {
     metricVavg.textContent = `${metrics.total.averageVelocity > 0 ? '+' : ''}${metrics.total.averageVelocity.toFixed(2)} cm/s`;
     metricSpeedAvg.textContent = `${metrics.total.averageSpeed.toFixed(2)} cm/s`;
     
-    // Show Misconception Comparison
     misconceptionCallout.style.display = 'block';
     misconceptionText.innerHTML = `
       • <strong>True Average Velocity (Δ<i>x</i> / Δ<i>t</i>):</strong> <strong>${metrics.total.averageVelocity.toFixed(2)} cm/s</strong><br>
@@ -1237,7 +1454,430 @@ function updateAvgUI() {
 }
 
 // =========================================================================
-// ANIMATION & CANVAS RENDERERS
+// ACTIVITY 3: WALKER & RELAY METHODS
+// =========================================================================
+
+// --- PART 1 & 2: ROUND TRIP ---
+function resetRoundTrip() {
+  state.rtIsRunning = false;
+  state.rtElapsedTime = 0.0;
+  state.rtWalker = {
+    x: 0.0,
+    v: 4.0,
+    segment: 1,
+    isFinished: false,
+    stepPhase: 0.0
+  };
+  state.rtLoggedTimes = {
+    t0: 0.0,
+    tTurn: null,
+    tFinal: null
+  };
+  state.rtAutoLogged = {
+    tTurn: false,
+    tFinal: false
+  };
+
+  btnRunRoundTrip.disabled = false;
+  btnRtTimer2Stop.disabled = true;
+  btnRtTimer1Stop.disabled = true;
+
+  rtStatusIndicator.textContent = "Ready — click Start Round Trip";
+  rtStatusIndicator.className = "status-badge";
+  rtStatusIndicator.style.background = "#eef8fb";
+  rtStatusIndicator.style.color = "var(--accent-strong)";
+  rtStatusIndicator.style.borderColor = "#b8d1db";
+
+  rtTimer2Display.textContent = "0.00 s";
+  rtTimer1Display.textContent = "0.00 s";
+  rtTableTTurn.textContent = "—";
+  rtTableTFinal.textContent = "—";
+  rtTableTTurn.className = "";
+  rtTableTFinal.className = "";
+
+  rtMetricV1.textContent = "—";
+  rtMetricV2.textContent = "—";
+  rtMetricDx.textContent = "—";
+  rtMetricDist.textContent = "—";
+  rtMetricVavg.textContent = "—";
+  rtMetricSpeedAvg.textContent = "—";
+  rtMisconceptionCallout.style.display = "none";
+
+  drawWalkerSimulation();
+  drawRtGraph();
+}
+
+function startRoundTrip() {
+  if (state.rtIsRunning) return;
+  resetRoundTrip();
+  state.rtIsRunning = true;
+  state.rtElapsedTime = 0.0;
+  state.rtLastTimestamp = performance.now();
+
+  btnRunRoundTrip.disabled = true;
+  if (state.rtTimingMode === 'manual') {
+    btnRtTimer2Stop.disabled = false;
+    btnRtTimer1Stop.disabled = true;
+  }
+
+  rtStatusIndicator.textContent = `Student 3 walking quickly towards turnaround (${state.rtTurnDist}m)...`;
+  drawWalkerSimulation();
+  drawRtGraph();
+}
+
+function recordRtTimer2() {
+  if (!state.rtIsRunning || state.rtLoggedTimes.tTurn !== null) return;
+  state.rtLoggedTimes.tTurn = state.rtElapsedTime;
+  rtTimer2Display.textContent = `${state.rtElapsedTime.toFixed(2)} s`;
+  rtTableTTurn.textContent = `${state.rtElapsedTime.toFixed(2)} s`;
+  rtTableTTurn.className = "logged-cell";
+  btnRtTimer2Stop.disabled = true;
+  btnRtTimer1Stop.disabled = false;
+  computeAndDisplayRtMetrics();
+  drawRtGraph();
+}
+
+function recordRtTimer1() {
+  if (!state.rtIsRunning || state.rtLoggedTimes.tFinal !== null) return;
+  state.rtLoggedTimes.tFinal = state.rtElapsedTime;
+  rtTimer1Display.textContent = `${state.rtElapsedTime.toFixed(2)} s`;
+  rtTableTFinal.textContent = `${state.rtElapsedTime.toFixed(2)} s`;
+  rtTableTFinal.className = "logged-cell";
+  btnRtTimer1Stop.disabled = true;
+  computeAndDisplayRtMetrics();
+  drawRtGraph();
+}
+
+function updateWalkerPhysics(dt) {
+  if (!state.rtIsRunning) return;
+  const walkObj = calculateWalkerRoundTrip(state.rtElapsedTime, state.rtTurnDist, 4.0, -2.0);
+  
+  state.rtWalker.x = walkObj.x;
+  state.rtWalker.v = walkObj.v;
+  state.rtWalker.segment = walkObj.segment;
+  state.rtWalker.isFinished = walkObj.isFinished;
+  state.rtWalker.stepPhase += Math.abs(walkObj.v) * dt * 3.5;
+
+  if (state.rtLoggedTimes.tTurn === null) {
+    rtTimer2Display.textContent = `${state.rtElapsedTime.toFixed(2)} s`;
+  }
+  rtTimer1Display.textContent = `${state.rtElapsedTime.toFixed(2)} s`;
+
+  if (state.rtTimingMode === 'auto') {
+    if (!state.rtAutoLogged.tTurn && state.rtElapsedTime >= walkObj.tTurn) {
+      state.rtAutoLogged.tTurn = true;
+      state.rtLoggedTimes.tTurn = walkObj.tTurn;
+      rtTimer2Display.textContent = `${walkObj.tTurn.toFixed(2)} s`;
+      rtTableTTurn.textContent = `${walkObj.tTurn.toFixed(2)} s`;
+      rtTableTTurn.className = "logged-cell";
+      rtStatusIndicator.textContent = `Turnaround reached! Student 3 walking slowly back to start...`;
+      computeAndDisplayRtMetrics();
+    }
+  }
+
+  if (walkObj.isFinished || state.rtElapsedTime >= walkObj.totalTime) {
+    state.rtIsRunning = false;
+    btnRunRoundTrip.disabled = false;
+    btnRtTimer2Stop.disabled = true;
+    btnRtTimer1Stop.disabled = true;
+
+    if (state.rtLoggedTimes.tFinal === null) {
+      state.rtLoggedTimes.tFinal = state.rtElapsedTime;
+      rtTimer1Display.textContent = `${state.rtElapsedTime.toFixed(2)} s`;
+      rtTableTFinal.textContent = `${state.rtElapsedTime.toFixed(2)} s`;
+      rtTableTFinal.className = "logged-cell";
+    }
+
+    rtStatusIndicator.innerHTML = `🏁 <strong>Round Trip Complete!</strong> Returned to 0 m at ${state.rtElapsedTime.toFixed(2)} s.`;
+    computeAndDisplayRtMetrics();
+    drawRtGraph();
+  }
+}
+
+function computeAndDisplayRtMetrics() {
+  const tTurn = state.rtLoggedTimes.tTurn;
+  const tFinal = state.rtLoggedTimes.tFinal;
+  const xTurn = state.rtTurnDist;
+
+  if (tTurn !== null) {
+    const v1 = xTurn / tTurn;
+    rtMetricV1.textContent = `+${v1.toFixed(2)} m/s`;
+  }
+
+  if (tTurn !== null && tFinal !== null) {
+    const metrics = calculateRoundTripMetrics(xTurn, tTurn, tFinal);
+    rtMetricV2.textContent = `${metrics.segment2.v.toFixed(2)} m/s`;
+    rtMetricDx.textContent = `0.0 m`;
+    rtMetricDist.textContent = `${metrics.total.distance.toFixed(1)} m`;
+    rtMetricVavg.textContent = `0.00 m/s`;
+    rtMetricSpeedAvg.textContent = `${metrics.total.averageSpeed.toFixed(2)} m/s`;
+
+    rtMisconceptionCallout.style.display = "block";
+    rtMisconceptionText.innerHTML = `
+      • <strong>True Average Velocity:</strong> <strong>0.00 m/s</strong> (since total displacement Δ<i>x</i> = 0 m)<br>
+      • <strong>Arithmetic Mean (<i>v</i>₁ + <i>v</i>₂) / 2:</strong> <strong>${metrics.total.arithmeticMeanVelocity.toFixed(2)} m/s</strong><br>
+      • <strong>Average Speed (<i>d</i> / Δ<i>t</i>):</strong> <strong>${metrics.total.averageSpeed.toFixed(2)} m/s</strong><br>
+      Notice why they differ: The walker traveled 20 m total, but displacement canceled out completely because direction reversed!
+    `;
+  }
+}
+
+// --- PART 3 & 4: 3-PERSON RELAY ---
+function resetRelay() {
+  state.relayIsRunning = false;
+  state.relayElapsedTime = 0.0;
+  state.relayRunners = {
+    x: 0.0,
+    activeStudent: 1,
+    isFinished: false,
+    stepPhase: 0.0
+  };
+  state.relayLoggedTimes = {
+    t1: null,
+    t2: null,
+    t3: null
+  };
+  state.relayAutoLogged = {
+    t1: false,
+    t2: false,
+    t3: false
+  };
+
+  btnRunRelay.disabled = false;
+  btnRelayTimer1Stop.disabled = true;
+  btnRelayTimer2Stop.disabled = true;
+  btnRelayTimer3Stop.disabled = true;
+
+  relayStatusIndicator.textContent = "Ready — click Start Relay Race";
+  relayStatusIndicator.className = "status-badge";
+  relayStatusIndicator.style.background = "#eef8fb";
+  relayStatusIndicator.style.color = "var(--accent-strong)";
+  relayStatusIndicator.style.borderColor = "#b8d1db";
+
+  relayTimer1Display.textContent = "0.00 s";
+  relayTimer2Display.textContent = "0.00 s";
+  relayTimer3Display.textContent = "0.00 s";
+
+  relayT1Cell.textContent = "—";
+  relayDt1Cell.textContent = "—";
+  relayV1Cell.textContent = "—";
+  relayT2Cell.textContent = "—";
+  relayDt2Cell.textContent = "—";
+  relayV2Cell.textContent = "—";
+  relayT3Cell.textContent = "—";
+  relayDt3Cell.textContent = "—";
+  relayV3Cell.textContent = "—";
+
+  relayTotalTimeMetric.textContent = "—";
+  relayVavgMetric.textContent = "—";
+  relaySpeedMetric.textContent = "—";
+
+  drawRelaySimulation();
+  drawRelayGraph();
+}
+
+function startRelay() {
+  if (state.relayIsRunning) return;
+  resetRelay();
+  state.relayIsRunning = true;
+  state.relayElapsedTime = 0.0;
+  state.relayLastTimestamp = performance.now();
+
+  btnRunRelay.disabled = true;
+  if (state.relayTimingMode === 'manual') {
+    btnRelayTimer1Stop.disabled = false;
+    btnRelayTimer2Stop.disabled = true;
+    btnRelayTimer3Stop.disabled = true;
+  }
+
+  relayStatusIndicator.textContent = "🏃 Student 1 running Leg 1 (0 to 8 m)...";
+  drawRelaySimulation();
+  drawRelayGraph();
+}
+
+function recordRelayTimer1() {
+  if (!state.relayIsRunning || state.relayLoggedTimes.t1 !== null) return;
+  state.relayLoggedTimes.t1 = state.relayElapsedTime;
+  relayTimer1Display.textContent = `${state.relayElapsedTime.toFixed(2)} s`;
+  btnRelayTimer1Stop.disabled = true;
+  btnRelayTimer2Stop.disabled = false;
+  computeAndDisplayRelayMetrics();
+  drawRelayGraph();
+}
+
+function recordRelayTimer2() {
+  if (!state.relayIsRunning || state.relayLoggedTimes.t2 !== null) return;
+  state.relayLoggedTimes.t2 = state.relayElapsedTime;
+  relayTimer2Display.textContent = `${state.relayElapsedTime.toFixed(2)} s`;
+  btnRelayTimer2Stop.disabled = true;
+  btnRelayTimer3Stop.disabled = false;
+  computeAndDisplayRelayMetrics();
+  drawRelayGraph();
+}
+
+function recordRelayTimer3() {
+  if (!state.relayIsRunning || state.relayLoggedTimes.t3 !== null) return;
+  state.relayLoggedTimes.t3 = state.relayElapsedTime;
+  relayTimer3Display.textContent = `${state.relayElapsedTime.toFixed(2)} s`;
+  btnRelayTimer3Stop.disabled = true;
+  computeAndDisplayRelayMetrics();
+  drawRelayGraph();
+}
+
+function updateRelayPhysics(dt) {
+  if (!state.relayIsRunning) return;
+  const relayObj = calculateRelayPosition(state.relayElapsedTime, RELAY_CONFIG);
+
+  state.relayRunners.x = relayObj.x;
+  state.relayRunners.activeStudent = relayObj.activeStudent;
+  state.relayRunners.isFinished = relayObj.isFinished;
+  state.relayRunners.stepPhase += Math.abs(relayObj.v) * dt * 3.5;
+
+  if (state.relayLoggedTimes.t1 === null) relayTimer1Display.textContent = `${state.relayElapsedTime.toFixed(2)} s`;
+  if (state.relayLoggedTimes.t2 === null) relayTimer2Display.textContent = `${state.relayElapsedTime.toFixed(2)} s`;
+  if (state.relayLoggedTimes.t3 === null) relayTimer3Display.textContent = `${state.relayElapsedTime.toFixed(2)} s`;
+
+  if (state.relayTimingMode === 'auto') {
+    if (!state.relayAutoLogged.t1 && state.relayElapsedTime >= relayObj.t1) {
+      state.relayAutoLogged.t1 = true;
+      state.relayLoggedTimes.t1 = relayObj.t1;
+      relayTimer1Display.textContent = `${relayObj.t1.toFixed(2)} s`;
+      relayStatusIndicator.textContent = "🤝 Handoff at 8 m! Student 2 running Leg 2 (8 to 12 m)...";
+      computeAndDisplayRelayMetrics();
+    }
+    if (!state.relayAutoLogged.t2 && state.relayElapsedTime >= relayObj.t2) {
+      state.relayAutoLogged.t2 = true;
+      state.relayLoggedTimes.t2 = relayObj.t2;
+      relayTimer2Display.textContent = `${relayObj.t2.toFixed(2)} s`;
+      relayStatusIndicator.textContent = "🤝 Handoff at 12 m! Student 3 running Leg 3 (12 to 16 m)...";
+      computeAndDisplayRelayMetrics();
+    }
+  }
+
+  if (relayObj.isFinished || state.relayElapsedTime >= relayObj.t3) {
+    state.relayIsRunning = false;
+    btnRunRelay.disabled = false;
+    btnRelayTimer1Stop.disabled = true;
+    btnRelayTimer2Stop.disabled = true;
+    btnRelayTimer3Stop.disabled = true;
+
+    if (state.relayLoggedTimes.t3 === null) {
+      state.relayLoggedTimes.t3 = state.relayElapsedTime;
+      relayTimer3Display.textContent = `${state.relayElapsedTime.toFixed(2)} s`;
+    }
+
+    relayStatusIndicator.innerHTML = `🏁 <strong>Relay Finished!</strong> Student 3 crossed 16 m at ${state.relayElapsedTime.toFixed(2)} s.`;
+    computeAndDisplayRelayMetrics();
+    drawRelayGraph();
+  }
+}
+
+function computeAndDisplayRelayMetrics() {
+  const t1 = state.relayLoggedTimes.t1;
+  const t2 = state.relayLoggedTimes.t2;
+  const t3 = state.relayLoggedTimes.t3;
+
+  if (t1 !== null) {
+    relayT1Cell.textContent = `${t1.toFixed(2)} s`;
+    relayDt1Cell.textContent = `${t1.toFixed(2)} s`;
+    const v1 = 8.0 / t1;
+    relayV1Cell.textContent = `+${v1.toFixed(2)} m/s`;
+  }
+
+  if (t1 !== null && t2 !== null) {
+    relayT2Cell.textContent = `${t2.toFixed(2)} s`;
+    const dt2 = t2 - t1;
+    relayDt2Cell.textContent = `${dt2.toFixed(2)} s`;
+    const v2 = dt2 > 0 ? 4.0 / dt2 : 0;
+    relayV2Cell.textContent = `+${v2.toFixed(2)} m/s`;
+  }
+
+  if (t1 !== null && t2 !== null && t3 !== null) {
+    relayT3Cell.textContent = `${t3.toFixed(2)} s`;
+    const dt3 = t3 - t2;
+    relayDt3Cell.textContent = `${dt3.toFixed(2)} s`;
+    const v3 = dt3 > 0 ? 4.0 / dt3 : 0;
+    relayV3Cell.textContent = `+${v3.toFixed(2)} m/s`;
+
+    const metrics = calculateRelayMetrics(t1, t2, t3, RELAY_CONFIG);
+    relayTotalTimeMetric.textContent = `${metrics.total.dt.toFixed(2)} s`;
+    relayVavgMetric.textContent = `+${metrics.total.averageVelocity.toFixed(2)} m/s`;
+    relaySpeedMetric.textContent = `${metrics.total.averageSpeed.toFixed(2)} m/s`;
+  }
+}
+
+// --- PART 5: CHALLENGE SOLVER ---
+function testRelayChallenge() {
+  const v1 = parseFloat(challV1Input.value) || 4.0;
+  const v2 = parseFloat(challV2Input.value) || 2.0;
+  const vTarget = parseFloat(challVTargetInput.value) || 6.0;
+  const enteredV3 = parseFloat(challV3Input.value);
+
+  const sol = calculateRequiredSegmentSpeed(vTarget, v1, v2, RELAY_CONFIG);
+
+  challFeedback.style.display = 'block';
+
+  if (!sol.possible) {
+    challFeedback.style.background = '#fff5f5';
+    challFeedback.style.border = '1px solid #ffc9c9';
+    challFeedback.style.color = '#c92a2a';
+    challFeedback.innerHTML = `⚠️ <strong>Physically Impossible:</strong> ${sol.reason}`;
+    return;
+  }
+
+  if (isNaN(enteredV3)) {
+    challFeedback.style.background = '#fff9db';
+    challFeedback.style.border = '1px solid #ffd8a8';
+    challFeedback.style.color = '#d9480f';
+    challFeedback.innerHTML = `Please enter your derived speed for Student 3 to run the simulation test.`;
+    return;
+  }
+
+  const pErr = calculatePercentError(enteredV3, sol.v3Required);
+  const correct = pErr <= 8.0;
+
+  if (correct) {
+    challFeedback.style.background = '#ebfbee';
+    challFeedback.style.border = '1px solid #c3fae8';
+    challFeedback.style.color = '#087f5b';
+    challFeedback.innerHTML = `✅ <strong>Calculation Verified!</strong> Student 3 must move at <strong>${sol.v3Required.toFixed(2)} m/s</strong> to complete Leg 3 in ${sol.dt3Needed.toFixed(2)} s, achieving the target team average velocity of ${vTarget.toFixed(1)} m/s.`;
+  } else {
+    challFeedback.style.background = '#fff5f5';
+    challFeedback.style.border = '1px solid #ffc9c9';
+    challFeedback.style.color = '#c92a2a';
+    challFeedback.innerHTML = `⚠️ <strong>Discrepancy:</strong> Your calculation (${enteredV3.toFixed(2)} m/s) differs from the required velocity (${sol.v3Required.toFixed(2)} m/s). Check your total time equation: <span class="math-expr">Δ<i>t</i><sub>total</sub> = 16 m / ${vTarget} m/s</span>.`;
+  }
+
+  // Run Challenge Simulation
+  state.challIsRunning = true;
+  state.challElapsedTime = 0.0;
+  state.challLastTimestamp = performance.now();
+  state.challConfig = {
+    x0: 0, x1: 8, x2: 12, x3: 16,
+    v1, v2, v3: enteredV3
+  };
+}
+
+function updateChallPhysics(dt) {
+  if (!state.challIsRunning || !state.challConfig) return;
+  const relayObj = calculateRelayPosition(state.challElapsedTime, state.challConfig);
+
+  state.challRunner.x = relayObj.x;
+  state.challRunner.activeStudent = relayObj.activeStudent;
+  state.challRunner.isFinished = relayObj.isFinished;
+  state.challRunner.stepPhase += Math.abs(relayObj.v) * dt * 3.5;
+
+  if (relayObj.isFinished || state.challElapsedTime >= relayObj.t3) {
+    state.challIsRunning = false;
+    const finalVavg = 16.0 / (state.challElapsedTime || 1e-5);
+    challOutcomeBox.style.display = 'block';
+    challOutcomeBox.className = 'alert-box info';
+    challOutcomeBox.innerHTML = `🏁 <strong>Simulated Relay Finished!</strong> Total Time = <strong>${state.challElapsedTime.toFixed(2)} s</strong> · Resulting Team Average Velocity = <strong>${finalVavg.toFixed(2)} m/s</strong>.`;
+  }
+}
+
+// =========================================================================
+// ANIMATION LOOP
 // =========================================================================
 function animate(timestamp) {
   if (state.currentActivity === 'constant') {
@@ -1254,8 +1894,7 @@ function animate(timestamp) {
     }
     updateUI();
     draw();
-  } else {
-    // Activity 2: Average Velocity Mode
+  } else if (state.currentActivity === 'average') {
     if (state.avgIsRunning) {
       const dt = Math.min((timestamp - state.avgLastTimestamp) / 1000, 0.1) * state.avgSpeedMultiplier;
       state.avgLastTimestamp = timestamp;
@@ -1265,14 +1904,40 @@ function animate(timestamp) {
     }
     updateAvgUI();
     drawAvgSimulation();
+  } else if (state.currentActivity === 'walker') {
+    if (state.walkerSubMode === 'roundtrip') {
+      if (state.rtIsRunning) {
+        const dt = Math.min((timestamp - state.rtLastTimestamp) / 1000, 0.1) * state.rtSpeedMultiplier;
+        state.rtLastTimestamp = timestamp;
+        state.rtElapsedTime += dt;
+        updateWalkerPhysics(dt);
+      }
+      drawWalkerSimulation();
+    } else if (state.walkerSubMode === 'relay') {
+      if (state.relayIsRunning) {
+        const dt = Math.min((timestamp - state.relayLastTimestamp) / 1000, 0.1) * state.relaySpeedMultiplier;
+        state.relayLastTimestamp = timestamp;
+        state.relayElapsedTime += dt;
+        updateRelayPhysics(dt);
+      }
+      drawRelaySimulation();
+    } else if (state.walkerSubMode === 'challenge') {
+      if (state.challIsRunning) {
+        const dt = Math.min((timestamp - state.challLastTimestamp) / 1000, 0.1);
+        state.challLastTimestamp = timestamp;
+        state.challElapsedTime += dt;
+        updateChallPhysics(dt);
+      }
+      drawChallSimulation();
+    }
   }
   
   requestAnimationFrame(animate);
 }
 
-// -------------------------------------------------------------------------
-// Constant Velocity Canvases Drawing
-// -------------------------------------------------------------------------
+// =========================================================================
+// CANVAS DRAWING (CONSTANT VELOCITY & ARDUINO MODES)
+// =========================================================================
 function draw() {
   simCtx.clearRect(0, 0, SIM_WIDTH, SIM_HEIGHT);
   
@@ -1293,7 +1958,6 @@ function draw() {
     simCtx.fillText(`${pos} cm`, x, 14);
   });
   
-  // Dual Rails & Central Dividing Beam
   simCtx.strokeStyle = '#c8dbe3';
   simCtx.lineWidth = 3;
   simCtx.beginPath();
@@ -1327,7 +1991,7 @@ function draw() {
   simCtx.fillRect(TRACK_PADDING - 6, CAR_RED_Y - 10, 6, 95);
   simCtx.fillRect(SIM_WIDTH - TRACK_PADDING, CAR_RED_Y - 10, 6, 95);
   
-  drawRulerTape(simCtx);
+  drawRulerTape(simCtx, TRACK_MAX, 'cm');
   
   if (state.predPos !== null && !isNaN(state.predPos)) {
     drawPredictionFlag(simCtx, state.predPos);
@@ -1373,7 +2037,6 @@ function drawGraph() {
   }
   
   const maxPosVal = 240.0;
-  
   function timeToPx(t) { return paddingLeft + (t / maxTimeVal) * graphW; }
   function posToPx(x) { return paddingTop + graphH - (x / maxPosVal) * graphH; }
   
@@ -1424,7 +2087,6 @@ function drawGraph() {
   graphCtx.fillText('Position (cm)', 0, 0);
   graphCtx.restore();
   
-  // Scatter points
   if (state.carRed.enabled) {
     state.carRed.dataLogs.forEach(p => {
       graphCtx.fillStyle = '#e03131';
@@ -1449,7 +2111,6 @@ function drawGraph() {
     });
   }
   
-  // Regression Fit Lines
   if (state.isFitToggled) {
     const redFit = fitLinearRegression(state.carRed.dataLogs);
     const blueFit = fitLinearRegression(state.carBlue.dataLogs);
@@ -1473,7 +2134,6 @@ function drawGraph() {
     }
   }
   
-  // Prediction Coordinate
   if (state.predTime !== null && state.predPos !== null && !isNaN(state.predTime) && !isNaN(state.predPos)) {
     const px = timeToPx(state.predTime);
     const py = posToPx(state.predPos);
@@ -1508,41 +2168,12 @@ function drawGraph() {
     graphCtx.textAlign = 'left';
     graphCtx.fillText(`Predicted (${state.predTime.toFixed(2)}s, ${state.predPos.toFixed(1)}cm)`, px + 9, py - 2);
   }
-  
-  // Legend
-  const legendX = paddingLeft + 20;
-  const legendY = paddingTop + 15;
-  graphCtx.font = '500 10px sans-serif';
-  graphCtx.textAlign = 'left';
-  
-  if (state.carRed.enabled) {
-    graphCtx.fillStyle = '#e03131';
-    graphCtx.beginPath();
-    graphCtx.arc(legendX, legendY, 4, 0, Math.PI * 2);
-    graphCtx.fill();
-    graphCtx.fillStyle = '#495057';
-    graphCtx.fillText('Red Car A (Top)', legendX + 10, legendY + 3);
-  }
-  
-  if (state.carBlue.enabled) {
-    const offset = state.carRed.enabled ? 120 : 0;
-    graphCtx.fillStyle = '#1c7ed6';
-    graphCtx.beginPath();
-    graphCtx.arc(legendX + offset, legendY, 4, 0, Math.PI * 2);
-    graphCtx.fill();
-    graphCtx.fillStyle = '#495057';
-    graphCtx.fillText('Blue Car B (Bottom)', legendX + offset + 10, legendY + 3);
-  }
 }
 
-// -------------------------------------------------------------------------
-// Average Velocity Canvases Drawing
-// -------------------------------------------------------------------------
 function drawAvgSimulation() {
   avgSimCtx.clearRect(0, 0, SIM_WIDTH, SIM_HEIGHT);
   const trip = state.avgCurrentTrip;
   
-  // 1. Dotted marks
   MARKS.forEach(pos => {
     const x = cmToPx(pos);
     avgSimCtx.strokeStyle = 'rgba(15, 126, 155, 0.15)';
@@ -1560,7 +2191,6 @@ function drawAvgSimulation() {
     avgSimCtx.fillText(`${pos} cm`, x, 14);
   });
   
-  // 2. Track Rail
   const TRACK_CENTER_Y = 110;
   avgSimCtx.fillStyle = '#e9f4fb';
   avgSimCtx.fillRect(TRACK_PADDING, TRACK_CENTER_Y - 8, SIM_WIDTH - 2 * TRACK_PADDING, 16);
@@ -1568,38 +2198,26 @@ function drawAvgSimulation() {
   avgSimCtx.lineWidth = 2;
   avgSimCtx.strokeRect(TRACK_PADDING, TRACK_CENTER_Y - 8, SIM_WIDTH - 2 * TRACK_PADDING, 16);
 
-  // End Bumpers
   avgSimCtx.fillStyle = '#61808b';
   avgSimCtx.fillRect(TRACK_PADDING - 6, TRACK_CENTER_Y - 25, 6, 50);
   avgSimCtx.fillRect(SIM_WIDTH - TRACK_PADDING, TRACK_CENTER_Y - 25, 6, 50);
   
-  // 3. Ruler Tape
-  drawRulerTape(avgSimCtx);
-  
-  // 4. Draw Transition Tape Mark (Xtape) Banner
+  drawRulerTape(avgSimCtx, TRACK_MAX, 'cm');
   drawTapeMarker(avgSimCtx, trip.xTape);
-  
-  // 5. Draw Start (X0) and Finish (Xf) flags
   drawLocationFlag(avgSimCtx, trip.x0, `Start X₀ (${trip.x0} cm)`, '#1a7f4e', 40);
   drawLocationFlag(avgSimCtx, trip.xf, `Finish X_f (${trip.xf} cm)`, '#c92a2a', 65);
-  
-  // 6. Draw Arduino Car
   drawArduinoCar(avgSimCtx, state.avgCar.x, TRACK_CENTER_Y - 4, state.avgCar.v, state.avgCar.wheelAngle, state.avgCar.segment);
 }
 
 function drawTapeMarker(ctx, cmPos) {
   const x = cmToPx(cmPos);
-  
   ctx.save();
-  // Striped Yellow/Amber Warning Tape
   ctx.fillStyle = '#f59f00';
   ctx.fillRect(x - 5, 85, 10, 45);
-  
   ctx.strokeStyle = '#d9480f';
   ctx.lineWidth = 1.5;
   ctx.strokeRect(x - 5, 85, 10, 45);
   
-  // Vertical Tape Flag
   ctx.strokeStyle = '#d67b19';
   ctx.lineWidth = 2;
   ctx.setLineDash([3, 3]);
@@ -1620,7 +2238,6 @@ function drawTapeMarker(ctx, cmPos) {
   ctx.font = 'bold 9px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(`🚩 Tape Mark: ${cmPos} cm`, x, 31);
-  
   ctx.restore();
 }
 
@@ -1643,50 +2260,36 @@ function drawLocationFlag(ctx, cmPos, text, color, yOffset) {
 
 function drawArduinoCar(ctx, cmPos, y, velocity, wheelAngle, segment) {
   const x = cmToPx(cmPos);
-  
   ctx.save();
   ctx.translate(x, y);
   
-  const isMovingLeft = velocity < 0;
-  if (isMovingLeft) {
-    ctx.scale(-1, 1);
-  }
+  if (velocity < 0) ctx.scale(-1, 1);
   
   const w = 62;
-  const primaryColor = '#0b7285';
-  const shadowColor = '#084b57';
-  
-  // Wheels
   drawCartWheel(ctx, -18, 9, 8, wheelAngle);
   drawCartWheel(ctx, 18, 9, 8, wheelAngle);
   
-  // Arduino Chassis
-  ctx.fillStyle = primaryColor;
-  ctx.strokeStyle = shadowColor;
+  ctx.fillStyle = '#0b7285';
+  ctx.strokeStyle = '#084b57';
   ctx.lineWidth = 1.5;
   drawRoundedRect(ctx, -w / 2, -7, w, 14, 3);
   ctx.fill();
   ctx.stroke();
   
-  // Arduino Board PCB & LEDs
   ctx.fillStyle = '#1098ad';
   drawRoundedRect(ctx, -w / 2 + 10, -15, w - 20, 9, 2);
   ctx.fill();
   ctx.stroke();
   
-  // Microcontroller chip
   ctx.fillStyle = '#212529';
   ctx.fillRect(-8, -13, 16, 6);
   
-  // Blinking green LED
   ctx.fillStyle = '#51cf66';
   ctx.beginPath();
   ctx.arc(w / 2 - 16, -11, 2.5, 0, Math.PI * 2);
   ctx.fill();
-  
   ctx.restore();
   
-  // Labels
   ctx.fillStyle = '#0b7285';
   ctx.font = 'bold 9.5px sans-serif';
   ctx.textAlign = 'center';
@@ -1717,14 +2320,12 @@ function drawAvgGraph() {
   function timeToPx(t) { return paddingLeft + (t / maxT) * graphW; }
   function posToPx(x) { return paddingTop + graphH - (x / maxPosVal) * graphH; }
   
-  // Background
   avgGraphCtx.fillStyle = '#f8f9fa';
   avgGraphCtx.fillRect(paddingLeft, paddingTop, graphW, graphH);
   avgGraphCtx.strokeStyle = '#ced4da';
   avgGraphCtx.lineWidth = 1;
   avgGraphCtx.strokeRect(paddingLeft, paddingTop, graphW, graphH);
   
-  // Grid
   avgGraphCtx.strokeStyle = '#e9ecef';
   avgGraphCtx.lineWidth = 1;
   for (let t = 0; t <= maxT + 1e-4; t += maxT / 10) {
@@ -1764,12 +2365,10 @@ function drawAvgGraph() {
   avgGraphCtx.fillText('Position (cm)', 0, 0);
   avgGraphCtx.restore();
   
-  // Draw Theoretical / Logged Piecewise Segments
   const t0 = state.avgLoggedPoints.t0 !== null ? state.avgLoggedPoints.t0 : 0.0;
   const tTape = state.avgLoggedPoints.tTape;
   const tf = state.avgLoggedPoints.tf;
   
-  // Segment 1 Line
   if (tTape !== null) {
     avgGraphCtx.strokeStyle = '#0b7285';
     avgGraphCtx.lineWidth = 3;
@@ -1779,7 +2378,6 @@ function drawAvgGraph() {
     avgGraphCtx.stroke();
   }
   
-  // Segment 2 Line
   if (tTape !== null && tf !== null) {
     avgGraphCtx.strokeStyle = '#d67b19';
     avgGraphCtx.lineWidth = 3;
@@ -1788,7 +2386,6 @@ function drawAvgGraph() {
     avgGraphCtx.lineTo(timeToPx(tf), posToPx(trip.xf));
     avgGraphCtx.stroke();
     
-    // Average Velocity Chord Line (Dashed Green)
     avgGraphCtx.strokeStyle = '#1a7f4e';
     avgGraphCtx.lineWidth = 2.5;
     avgGraphCtx.setLineDash([6, 4]);
@@ -1799,7 +2396,6 @@ function drawAvgGraph() {
     avgGraphCtx.setLineDash([]);
   }
   
-  // Plot Points
   const pts = [];
   if (t0 !== null) pts.push({ t: t0, x: trip.x0, label: 'X₀', color: '#1a7f4e' });
   if (tTape !== null) pts.push({ t: tTape, x: trip.xTape, label: 'X_tape', color: '#f59f00' });
@@ -1821,38 +2417,515 @@ function drawAvgGraph() {
     avgGraphCtx.textAlign = 'left';
     avgGraphCtx.fillText(`${p.label} (${p.t.toFixed(2)}s, ${p.x}cm)`, px + 8, py - 4);
   });
-  
-  // Legend
-  const legendX = paddingLeft + 15;
-  const legendY = paddingTop + 15;
-  avgGraphCtx.font = '500 10px sans-serif';
-  avgGraphCtx.textAlign = 'left';
-  
-  avgGraphCtx.fillStyle = '#0b7285';
-  avgGraphCtx.fillRect(legendX, legendY - 5, 12, 4);
-  avgGraphCtx.fillStyle = '#495057';
-  avgGraphCtx.fillText('Segment 1', legendX + 18, legendY);
-  
-  avgGraphCtx.fillStyle = '#d67b19';
-  avgGraphCtx.fillRect(legendX + 85, legendY - 5, 12, 4);
-  avgGraphCtx.fillStyle = '#495057';
-  avgGraphCtx.fillText('Segment 2', legendX + 103, legendY);
-  
-  avgGraphCtx.strokeStyle = '#1a7f4e';
-  avgGraphCtx.setLineDash([4, 2]);
-  avgGraphCtx.beginPath();
-  avgGraphCtx.moveTo(legendX + 175, legendY - 3);
-  avgGraphCtx.lineTo(legendX + 195, legendY - 3);
-  avgGraphCtx.stroke();
-  avgGraphCtx.setLineDash([]);
-  avgGraphCtx.fillStyle = '#495057';
-  avgGraphCtx.fillText('Average Velocity Chord', legendX + 202, legendY);
 }
 
 // =========================================================================
-// CANVAS DRAWING HELPERS
+// CANVAS DRAWING: ACTIVITY 3 (WALKER & RELAY)
 // =========================================================================
-function drawRulerTape(ctx) {
+
+// --- Draw Walker Round Trip Canvas ---
+function drawWalkerSimulation() {
+  walkerCtx.clearRect(0, 0, SIM_WIDTH, SIM_HEIGHT);
+
+  for (let m = 0; m <= METER_MAX; m += 2) {
+    const x = meterToPx(m);
+    walkerCtx.strokeStyle = 'rgba(15, 126, 155, 0.15)';
+    walkerCtx.lineWidth = 1.5;
+    walkerCtx.setLineDash([5, 5]);
+    walkerCtx.beginPath();
+    walkerCtx.moveTo(x, 20);
+    walkerCtx.lineTo(x, RULER_Y - 2);
+    walkerCtx.stroke();
+    walkerCtx.setLineDash([]);
+
+    walkerCtx.fillStyle = 'rgba(12, 54, 68, 0.5)';
+    walkerCtx.font = '500 10px sans-serif';
+    walkerCtx.textAlign = 'center';
+    walkerCtx.fillText(`${m} m`, x, 16);
+  }
+
+  // Ground Track
+  const TRACK_CENTER_Y = 135;
+  walkerCtx.fillStyle = '#e9f4fb';
+  walkerCtx.fillRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
+  walkerCtx.strokeStyle = '#0f7e9b';
+  walkerCtx.lineWidth = 2;
+  walkerCtx.strokeRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
+
+  drawRulerTape(walkerCtx, METER_MAX, 'm');
+
+  // Turnaround Cone Marker
+  drawTurnaroundCone(walkerCtx, state.rtTurnDist);
+
+  // Start Marker at 0m
+  drawLocationFlagM(walkerCtx, 0.0, 'Start (0 m)', '#1a7f4e', 45);
+
+  // Animated Walker
+  drawAnimatedWalker(walkerCtx, state.rtWalker.x, TRACK_CENTER_Y - 2, state.rtWalker.v, state.rtWalker.stepPhase, '#0f7e9b', 'Student 3 (Walker)');
+}
+
+// --- Draw Round Trip Graph ---
+function drawRtGraph() {
+  rtGraphCtx.clearRect(0, 0, GRAPH_WIDTH, GRAPH_HEIGHT);
+  
+  const paddingLeft = 60;
+  const paddingRight = 30;
+  const paddingTop = 25;
+  const paddingBottom = 40;
+  
+  const graphW = GRAPH_WIDTH - paddingLeft - paddingRight;
+  const graphH = GRAPH_HEIGHT - paddingTop - paddingBottom;
+
+  const xTurn = state.rtTurnDist;
+  const tTurn = state.rtLoggedTimes.tTurn;
+  const tFinal = state.rtLoggedTimes.tFinal;
+
+  let maxT = 10.0;
+  if (tFinal) maxT = Math.max(maxT, Math.ceil((tFinal + 2) / 5) * 5);
+
+  const maxPosVal = 20.0;
+  function timeToPx(t) { return paddingLeft + (t / maxT) * graphW; }
+  function posToPx(x) { return paddingTop + graphH - (x / maxPosVal) * graphH; }
+
+  rtGraphCtx.fillStyle = '#f8f9fa';
+  rtGraphCtx.fillRect(paddingLeft, paddingTop, graphW, graphH);
+  rtGraphCtx.strokeStyle = '#ced4da';
+  rtGraphCtx.strokeRect(paddingLeft, paddingTop, graphW, graphH);
+
+  // Grid
+  rtGraphCtx.strokeStyle = '#e9ecef';
+  for (let t = 0; t <= maxT + 1e-4; t += maxT / 10) {
+    const x = timeToPx(t);
+    rtGraphCtx.beginPath();
+    rtGraphCtx.moveTo(x, paddingTop);
+    rtGraphCtx.lineTo(x, paddingTop + graphH);
+    rtGraphCtx.stroke();
+    rtGraphCtx.fillStyle = '#495057';
+    rtGraphCtx.font = '10px sans-serif';
+    rtGraphCtx.textAlign = 'center';
+    rtGraphCtx.fillText(t.toFixed(1), x, paddingTop + graphH + 15);
+  }
+
+  for (let p = 0; p <= maxPosVal; p += 2) {
+    const y = posToPx(p);
+    rtGraphCtx.beginPath();
+    rtGraphCtx.moveTo(paddingLeft, y);
+    rtGraphCtx.lineTo(paddingLeft + graphW, y);
+    rtGraphCtx.stroke();
+    rtGraphCtx.fillStyle = '#495057';
+    rtGraphCtx.font = '10px sans-serif';
+    rtGraphCtx.textAlign = 'right';
+    rtGraphCtx.fillText(`${p}`, paddingLeft - 8, y + 3);
+  }
+
+  rtGraphCtx.fillStyle = '#123140';
+  rtGraphCtx.font = 'bold 11px sans-serif';
+  rtGraphCtx.textAlign = 'center';
+  rtGraphCtx.fillText('Time (s)', paddingLeft + graphW / 2, paddingTop + graphH + 32);
+
+  rtGraphCtx.save();
+  rtGraphCtx.translate(18, paddingTop + graphH / 2);
+  rtGraphCtx.rotate(-Math.PI / 2);
+  rtGraphCtx.fillText('Position (meters)', 0, 0);
+  rtGraphCtx.restore();
+
+  // Lines
+  if (tTurn !== null) {
+    rtGraphCtx.strokeStyle = '#0f7e9b';
+    rtGraphCtx.lineWidth = 3;
+    rtGraphCtx.beginPath();
+    rtGraphCtx.moveTo(timeToPx(0), posToPx(0));
+    rtGraphCtx.lineTo(timeToPx(tTurn), posToPx(xTurn));
+    rtGraphCtx.stroke();
+  }
+
+  if (tTurn !== null && tFinal !== null) {
+    rtGraphCtx.strokeStyle = '#d67b19';
+    rtGraphCtx.lineWidth = 3;
+    rtGraphCtx.beginPath();
+    rtGraphCtx.moveTo(timeToPx(tTurn), posToPx(xTurn));
+    rtGraphCtx.lineTo(timeToPx(tFinal), posToPx(0));
+    rtGraphCtx.stroke();
+
+    // Average velocity chord (horizontal at 0m)
+    rtGraphCtx.strokeStyle = '#1a7f4e';
+    rtGraphCtx.lineWidth = 2.5;
+    rtGraphCtx.setLineDash([5, 4]);
+    rtGraphCtx.beginPath();
+    rtGraphCtx.moveTo(timeToPx(0), posToPx(0));
+    rtGraphCtx.lineTo(timeToPx(tFinal), posToPx(0));
+    rtGraphCtx.stroke();
+    rtGraphCtx.setLineDash([]);
+  }
+
+  // Points
+  const pts = [{ t: 0, x: 0, label: 'Start (0s, 0m)', color: '#1a7f4e' }];
+  if (tTurn !== null) pts.push({ t: tTurn, x: xTurn, label: `Turn (${tTurn.toFixed(2)}s, ${xTurn}m)`, color: '#d67b19' });
+  if (tFinal !== null) pts.push({ t: tFinal, x: 0, label: `Return (${tFinal.toFixed(2)}s, 0m)`, color: '#c92a2a' });
+
+  pts.forEach(p => {
+    const px = timeToPx(p.t);
+    const py = posToPx(p.x);
+    rtGraphCtx.fillStyle = p.color;
+    rtGraphCtx.strokeStyle = '#ffffff';
+    rtGraphCtx.lineWidth = 2;
+    rtGraphCtx.beginPath();
+    rtGraphCtx.arc(px, py, 6, 0, Math.PI * 2);
+    rtGraphCtx.fill();
+    rtGraphCtx.stroke();
+
+    rtGraphCtx.fillStyle = '#123140';
+    rtGraphCtx.font = 'bold 9px sans-serif';
+    rtGraphCtx.textAlign = 'left';
+    rtGraphCtx.fillText(p.label, px + 8, py - 4);
+  });
+}
+
+// --- Draw 3-Person Relay Canvas ---
+function drawRelaySimulation() {
+  relayCtx.clearRect(0, 0, SIM_WIDTH, SIM_HEIGHT);
+
+  for (let m = 0; m <= METER_MAX; m += 2) {
+    const x = meterToPx(m);
+    relayCtx.strokeStyle = 'rgba(15, 126, 155, 0.15)';
+    relayCtx.lineWidth = 1.5;
+    relayCtx.setLineDash([5, 5]);
+    relayCtx.beginPath();
+    relayCtx.moveTo(x, 20);
+    relayCtx.lineTo(x, RULER_Y - 2);
+    relayCtx.stroke();
+    relayCtx.setLineDash([]);
+
+    relayCtx.fillStyle = 'rgba(12, 54, 68, 0.5)';
+    relayCtx.font = '500 10px sans-serif';
+    relayCtx.textAlign = 'center';
+    relayCtx.fillText(`${m} m`, x, 16);
+  }
+
+  const TRACK_CENTER_Y = 135;
+  relayCtx.fillStyle = '#e9f4fb';
+  relayCtx.fillRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
+  relayCtx.strokeStyle = '#0f7e9b';
+  relayCtx.lineWidth = 2;
+  relayCtx.strokeRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
+
+  drawRulerTape(relayCtx, METER_MAX, 'm');
+
+  // Handoff & Finish Markers
+  drawLocationFlagM(relayCtx, 0.0, 'Start (0 m)', '#1a7f4e', 45);
+  drawLocationFlagM(relayCtx, 8.0, 'Handoff 1 (8 m)', '#1c7ed6', 45);
+  drawLocationFlagM(relayCtx, 12.0, 'Handoff 2 (12 m)', '#d67b19', 45);
+  drawLocationFlagM(relayCtx, 16.0, 'Finish Line (16 m)', '#c92a2a', 45);
+
+  // Active Relay Runner
+  const activeS = state.relayRunners.activeStudent;
+  const runnerColor = activeS === 1 ? '#1c7ed6' : (activeS === 2 ? '#d67b19' : '#1a7f4e');
+  const runnerLabel = activeS === 'done' ? 'Relay Finished' : `Student ${activeS}`;
+  drawAnimatedWalker(relayCtx, state.relayRunners.x, TRACK_CENTER_Y - 2, 3.0, state.relayRunners.stepPhase, runnerColor, runnerLabel);
+}
+
+// --- Draw Relay Graph ---
+function drawRelayGraph() {
+  relayGraphCtx.clearRect(0, 0, GRAPH_WIDTH, GRAPH_HEIGHT);
+
+  const paddingLeft = 60;
+  const paddingRight = 30;
+  const paddingTop = 25;
+  const paddingBottom = 40;
+
+  const graphW = GRAPH_WIDTH - paddingLeft - paddingRight;
+  const graphH = GRAPH_HEIGHT - paddingTop - paddingBottom;
+
+  const t1 = state.relayLoggedTimes.t1;
+  const t2 = state.relayLoggedTimes.t2;
+  const t3 = state.relayLoggedTimes.t3;
+
+  let maxT = 10.0;
+  if (t3) maxT = Math.max(maxT, Math.ceil((t3 + 2) / 5) * 5);
+
+  const maxPosVal = 20.0;
+  function timeToPx(t) { return paddingLeft + (t / maxT) * graphW; }
+  function posToPx(x) { return paddingTop + graphH - (x / maxPosVal) * graphH; }
+
+  relayGraphCtx.fillStyle = '#f8f9fa';
+  relayGraphCtx.fillRect(paddingLeft, paddingTop, graphW, graphH);
+  relayGraphCtx.strokeStyle = '#ced4da';
+  relayGraphCtx.strokeRect(paddingLeft, paddingTop, graphW, graphH);
+
+  relayGraphCtx.strokeStyle = '#e9ecef';
+  for (let t = 0; t <= maxT + 1e-4; t += maxT / 10) {
+    const x = timeToPx(t);
+    relayGraphCtx.beginPath();
+    relayGraphCtx.moveTo(x, paddingTop);
+    relayGraphCtx.lineTo(x, paddingTop + graphH);
+    relayGraphCtx.stroke();
+    relayGraphCtx.fillStyle = '#495057';
+    relayGraphCtx.font = '10px sans-serif';
+    relayGraphCtx.textAlign = 'center';
+    relayGraphCtx.fillText(t.toFixed(1), x, paddingTop + graphH + 15);
+  }
+
+  for (let p = 0; p <= maxPosVal; p += 2) {
+    const y = posToPx(p);
+    relayGraphCtx.beginPath();
+    relayGraphCtx.moveTo(paddingLeft, y);
+    relayGraphCtx.lineTo(paddingLeft + graphW, y);
+    relayGraphCtx.stroke();
+    relayGraphCtx.fillStyle = '#495057';
+    relayGraphCtx.font = '10px sans-serif';
+    relayGraphCtx.textAlign = 'right';
+    relayGraphCtx.fillText(`${p}`, paddingLeft - 8, y + 3);
+  }
+
+  relayGraphCtx.fillStyle = '#123140';
+  relayGraphCtx.font = 'bold 11px sans-serif';
+  relayGraphCtx.textAlign = 'center';
+  relayGraphCtx.fillText('Time (s)', paddingLeft + graphW / 2, paddingTop + graphH + 32);
+
+  relayGraphCtx.save();
+  relayGraphCtx.translate(18, paddingTop + graphH / 2);
+  relayGraphCtx.rotate(-Math.PI / 2);
+  relayGraphCtx.fillText('Position (meters)', 0, 0);
+  relayGraphCtx.restore();
+
+  // Draw 3 Connected Segments
+  if (t1 !== null) {
+    relayGraphCtx.strokeStyle = '#1c7ed6';
+    relayGraphCtx.lineWidth = 3;
+    relayGraphCtx.beginPath();
+    relayGraphCtx.moveTo(timeToPx(0), posToPx(0));
+    relayGraphCtx.lineTo(timeToPx(t1), posToPx(8));
+    relayGraphCtx.stroke();
+  }
+
+  if (t1 !== null && t2 !== null) {
+    relayGraphCtx.strokeStyle = '#d67b19';
+    relayGraphCtx.lineWidth = 3;
+    relayGraphCtx.beginPath();
+    relayGraphCtx.moveTo(timeToPx(t1), posToPx(8));
+    relayGraphCtx.lineTo(timeToPx(t2), posToPx(12));
+    relayGraphCtx.stroke();
+  }
+
+  if (t1 !== null && t2 !== null && t3 !== null) {
+    relayGraphCtx.strokeStyle = '#1a7f4e';
+    relayGraphCtx.lineWidth = 3;
+    relayGraphCtx.beginPath();
+    relayGraphCtx.moveTo(timeToPx(t2), posToPx(12));
+    relayGraphCtx.lineTo(timeToPx(t3), posToPx(16));
+    relayGraphCtx.stroke();
+
+    // Average Velocity chord
+    relayGraphCtx.strokeStyle = '#0f7e9b';
+    relayGraphCtx.lineWidth = 2;
+    relayGraphCtx.setLineDash([5, 4]);
+    relayGraphCtx.beginPath();
+    relayGraphCtx.moveTo(timeToPx(0), posToPx(0));
+    relayGraphCtx.lineTo(timeToPx(t3), posToPx(16));
+    relayGraphCtx.stroke();
+    relayGraphCtx.setLineDash([]);
+  }
+
+  const pts = [{ t: 0, x: 0, label: 'Start (0s, 0m)', color: '#123140' }];
+  if (t1 !== null) pts.push({ t: t1, x: 8, label: `Handoff 1 (${t1.toFixed(2)}s, 8m)`, color: '#1c7ed6' });
+  if (t2 !== null) pts.push({ t: t2, x: 12, label: `Handoff 2 (${t2.toFixed(2)}s, 12m)`, color: '#d67b19' });
+  if (t3 !== null) pts.push({ t: t3, x: 16, label: `Finish (${t3.toFixed(2)}s, 16m)`, color: '#1a7f4e' });
+
+  pts.forEach(p => {
+    const px = timeToPx(p.t);
+    const py = posToPx(p.x);
+    relayGraphCtx.fillStyle = p.color;
+    relayGraphCtx.strokeStyle = '#ffffff';
+    relayGraphCtx.lineWidth = 2;
+    relayGraphCtx.beginPath();
+    relayGraphCtx.arc(px, py, 6, 0, Math.PI * 2);
+    relayGraphCtx.fill();
+    relayGraphCtx.stroke();
+
+    relayGraphCtx.fillStyle = '#123140';
+    relayGraphCtx.font = 'bold 9px sans-serif';
+    relayGraphCtx.textAlign = 'left';
+    relayGraphCtx.fillText(p.label, px + 8, py - 4);
+  });
+}
+
+// --- Draw Challenge Canvas ---
+function drawChallSimulation() {
+  challCtx.clearRect(0, 0, SIM_WIDTH, 220);
+
+  for (let m = 0; m <= METER_MAX; m += 2) {
+    const x = meterToPx(m);
+    challCtx.strokeStyle = 'rgba(15, 126, 155, 0.15)';
+    challCtx.lineWidth = 1.5;
+    challCtx.setLineDash([5, 5]);
+    challCtx.beginPath();
+    challCtx.moveTo(x, 15);
+    challCtx.lineTo(x, 180);
+    challCtx.stroke();
+    challCtx.setLineDash([]);
+
+    challCtx.fillStyle = 'rgba(12, 54, 68, 0.5)';
+    challCtx.font = '500 10px sans-serif';
+    challCtx.textAlign = 'center';
+    challCtx.fillText(`${m} m`, x, 14);
+  }
+
+  const TRACK_CENTER_Y = 110;
+  challCtx.fillStyle = '#e9f4fb';
+  challCtx.fillRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
+  challCtx.strokeStyle = '#0f7e9b';
+  challCtx.lineWidth = 2;
+  challCtx.strokeRect(TRACK_PADDING, TRACK_CENTER_Y - 6, SIM_WIDTH - 2 * TRACK_PADDING, 12);
+
+  drawLocationFlagM(challCtx, 0.0, '0 m', '#1a7f4e', 35);
+  drawLocationFlagM(challCtx, 8.0, '8 m', '#1c7ed6', 35);
+  drawLocationFlagM(challCtx, 12.0, '12 m', '#d67b19', 35);
+  drawLocationFlagM(challCtx, 16.0, '16 m', '#c92a2a', 35);
+
+  const runnerX = state.challRunner.x;
+  drawAnimatedWalker(challCtx, runnerX, TRACK_CENTER_Y - 2, 4.0, state.challRunner.stepPhase, '#d67b19', `Student ${state.challRunner.activeStudent}`);
+}
+
+// =========================================================================
+// CANVAS SPRITES & RULERS
+// =========================================================================
+function drawAnimatedWalker(ctx, meterPos, trackY, velocity, phase, color, label) {
+  const x = meterToPx(meterPos);
+  const isMovingLeft = velocity < 0;
+
+  ctx.save();
+  ctx.translate(x, trackY);
+  if (isMovingLeft) ctx.scale(-1, 1);
+
+  const headY = -36;
+  const torsoTop = -26;
+  const torsoBottom = -10;
+  const legSwing = Math.sin(phase) * 12;
+
+  // Head
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(0, headY, 6.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Torso
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, torsoTop);
+  ctx.lineTo(0, torsoBottom);
+  ctx.stroke();
+
+  // Left Leg
+  ctx.beginPath();
+  ctx.moveTo(0, torsoBottom);
+  ctx.lineTo(-legSwing, 6);
+  ctx.stroke();
+
+  // Right Leg
+  ctx.beginPath();
+  ctx.moveTo(0, torsoBottom);
+  ctx.lineTo(legSwing, 6);
+  ctx.stroke();
+
+  // Left Arm
+  ctx.beginPath();
+  ctx.moveTo(0, torsoTop + 2);
+  ctx.lineTo(legSwing * 0.8, -14);
+  ctx.stroke();
+
+  // Right Arm (with baton)
+  ctx.beginPath();
+  ctx.moveTo(0, torsoTop + 2);
+  ctx.lineTo(-legSwing * 0.8, -14);
+  ctx.stroke();
+
+  // Baton
+  ctx.strokeStyle = '#d67b19';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-legSwing * 0.8 - 4, -18);
+  ctx.lineTo(-legSwing * 0.8 + 4, -10);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Label
+  ctx.fillStyle = color;
+  ctx.font = 'bold 9.5px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x, trackY - 48);
+  ctx.fillText(`x = ${meterPos.toFixed(1)} m`, x, trackY - 38);
+}
+
+function drawTurnaroundCone(ctx, meterPos) {
+  const x = meterToPx(meterPos);
+  ctx.save();
+  
+  // Traffic Cone
+  ctx.fillStyle = '#f59f00';
+  ctx.beginPath();
+  ctx.moveTo(x - 9, 135);
+  ctx.lineTo(x + 9, 135);
+  ctx.lineTo(x, 105);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#d9480f';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // White stripe on cone
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(x - 5, 122);
+  ctx.lineTo(x + 5, 122);
+  ctx.lineTo(x + 3, 115);
+  ctx.lineTo(x - 3, 115);
+  ctx.closePath();
+  ctx.fill();
+
+  // Turnaround Flag
+  ctx.strokeStyle = '#d67b19';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(x, 25);
+  ctx.lineTo(x, 105);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#fff4e6';
+  ctx.strokeStyle = '#d67b19';
+  drawRoundedRect(ctx, x - 65, 22, 130, 20, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#d9480f';
+  ctx.font = 'bold 9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`🚩 Turnaround: ${meterPos} m`, x, 35);
+  ctx.restore();
+}
+
+function drawLocationFlagM(ctx, meterPos, text, color, yOffset) {
+  const x = meterToPx(meterPos);
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x, yOffset);
+  ctx.lineTo(x, 125);
+  ctx.stroke();
+
+  ctx.fillStyle = color;
+  ctx.font = 'bold 8.5px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, x, yOffset - 3);
+  ctx.restore();
+}
+
+function drawRulerTape(ctx, maxVal, unit) {
   const yTop = RULER_Y - RULER_HEIGHT / 2;
   
   ctx.fillStyle = '#ffffff';
@@ -1866,27 +2939,25 @@ function drawRulerTape(ctx) {
   ctx.textAlign = 'center';
   ctx.font = 'bold 11px "IBM Plex Sans", sans-serif';
   
-  for (let cm = 0; cm <= TRACK_MAX; cm += 1) {
-    const x = cmToPx(cm);
+  const step = unit === 'm' ? 1 : 1;
+  const majorStep = unit === 'm' ? 2 : 30;
+  const midStep = unit === 'm' ? 1 : 10;
+  
+  for (let val = 0; val <= maxVal; val += step) {
+    const x = unit === 'm' ? meterToPx(val) : cmToPx(val);
     
-    if (cm % 30 === 0) {
+    if (val % majorStep === 0) {
       ctx.lineWidth = 1.8;
       ctx.beginPath();
       ctx.moveTo(x, yTop);
       ctx.lineTo(x, yTop + 14);
       ctx.stroke();
-      ctx.fillText(`${cm}`, x, yTop + 26);
-    } else if (cm % 10 === 0) {
+      ctx.fillText(`${val} ${val === 0 ? unit : ''}`, x, yTop + 26);
+    } else if (val % midStep === 0) {
       ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(x, yTop);
       ctx.lineTo(x, yTop + 9);
-      ctx.stroke();
-    } else if (cm % 5 === 0) {
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      ctx.moveTo(x, yTop);
-      ctx.lineTo(x, yTop + 6);
       ctx.stroke();
     } else {
       ctx.lineWidth = 0.5;
@@ -1945,10 +3016,7 @@ function drawCartoonCar(ctx, cmPos, y, color, velocity, wheelAngle, isActive) {
   ctx.save();
   ctx.translate(x, y);
   
-  const isMovingLeft = velocity < 0;
-  if (isMovingLeft) {
-    ctx.scale(-1, 1);
-  }
+  if (velocity < 0) ctx.scale(-1, 1);
   
   const w = 58;
   const primaryColor = color === 'red' ? '#e03131' : '#1c7ed6';
@@ -2009,7 +3077,6 @@ function drawCartoonCar(ctx, cmPos, y, color, velocity, wheelAngle, isActive) {
 
 function drawPredictionFlag(ctx, cmPos) {
   const x = cmToPx(cmPos);
-  
   ctx.save();
   ctx.strokeStyle = '#d67b19';
   ctx.lineWidth = 2;
@@ -2077,6 +3144,10 @@ function drawCrossingIndicator(ctx, cmPos) {
 
 function cmToPx(cm) {
   return TRACK_PADDING + cm * ScaleFactor;
+}
+
+function meterToPx(m) {
+  return TRACK_PADDING + m * MeterScaleFactor;
 }
 
 window.addEventListener('load', init);
