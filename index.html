@@ -13,13 +13,20 @@
 
   <div class="shell">
     <!-- Header banner -->
-    <header class="hero" style="background: linear-gradient(135deg, #0f7e9b, #095f76); border-left: 8px solid var(--warm); color: white; padding: 1.2rem 1.5rem; margin-top: 1rem; border-radius: 12px;">
-      <div class="hero-top" style="display: flex; flex-direction: column; gap: 0.2rem;">
-        <span class="kicker" style="color: #ffe8cc; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">The Thinking Experiment</span>
-        <h1 id="mainTitle" style="color: white; margin: 0.2rem 0; font-size: clamp(1.6rem, 3vw, 2.4rem); font-family: 'IBM Plex Sans', sans-serif;">Kinematics: Constant & Average Velocity</h1>
-        <p class="subtitle" style="color: #e6f6f9; margin-top: 0.2rem; font-size: 0.95rem; max-width: 90ch;">
-          Interactive modeling simulations for constant velocity particles, Arduino car trips, and multi-segment human walker/relay kinematics.
-        </p>
+    <header class="hero">
+      <div class="hero-top" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div style="flex: 1 1 auto; min-width: 0;">
+          <a href="https://thinking-experiment-sims.github.io/interactive-physics/" class="kicker" style="text-decoration: none;" title="Go to Physics Simulations Hub">← The Thinking Experiment</a>
+          <h1 id="mainTitle" style="margin: 0.2rem 0; font-size: clamp(1.6rem, 2.4vw, 2.3rem); font-family: 'IBM Plex Sans', sans-serif;">Kinematics: Constant &amp; Average Velocity</h1>
+          <p class="subtitle" style="margin-top: 0.2rem; font-size: 0.95rem; max-width: 90ch;">
+            Interactive modeling simulations for constant velocity particles, Arduino car trips, and multi-segment human walker/relay kinematics.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+          <a href="https://thinking-experiment-sims.github.io/interactive-physics/" class="btn btn-ghost" style="background: var(--surface-alt); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; font-size: 0.85rem;">🏠 Simulation Hub</a>
+          <a href="Constant_Velocity_Motion_Handout.docx" download class="btn btn-ghost" style="background: var(--surface-alt); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; font-size: 0.85rem;">📥 Editable Word (.docx)</a>
+          <button class="btn btn-ghost" onclick="window.print()" style="background: var(--surface-alt); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">🖨️ Print PDF</button>
+        </div>
       </div>
     </header>
 
